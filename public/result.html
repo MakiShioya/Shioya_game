@@ -2,71 +2,194 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover">
     <title>しおやゲーム（仮） - リザルト</title>
+    <!-- しおや将棋のフォントとアイコン設定 -->
+    <link rel="preload" href="script/font/setofont.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="icon" href="script/image/komiya_icon.png"> 
+    
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 90vh; margin: 0; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        .result-title { font-size: 2em; font-weight: bold; margin-bottom: 10px; }
-        .reason-box { background: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9em; line-height: 1.5; }
-        .stats-box { background: #333; color: white; padding: 15px; border-radius: 10px; margin-bottom: 30px; text-align: left; }
-        .stats-box p { margin: 5px 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
-        .win { color: #ff4d4d; }
-        .lose { color: #4d94ff; }
-        .draw { color: #28a745; }
-        .perfect { color: #e83e8c; font-size: 1.2em; border: 2px solid #e83e8c; padding: 5px; display: inline-block; border-radius: 5px; margin-bottom: 10px; }
-        button { padding: 15px; background: #333; color: white; border: none; border-radius: 5px; width: 100%; font-size: 1.1em; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #555; }
+        @font-face {
+            font-family: 'SetoFont';
+            src: url('script/font/setofont.ttf') format('truetype');
+            font-display: block;
+        }
+
+        * { font-family: 'SetoFont', "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; }
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #2c3e50;
+            -webkit-user-select: none; user-select: none;
+        }
+
+        #bg-image {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1;
+            background-image: url('script/image/mujin_haikei.PNG');
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+        }
+
+        .overlay {
+            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            justify-content: center; align-items: center; overscroll-behavior: none;
+        }
+
+        /* しおや将棋風のモーダルボックス */
+        .modal-box {
+            position: relative; background: #fff8dc; padding: 15px;
+            border-radius: 10px; border: 4px solid #8b4513; text-align: center;
+            width: 95%; max-width: 900px; max-height: 90%;
+            display: flex; flex-direction: column; box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .modal-body {
+            flex: 1; overflow-y: auto; margin: 10px 0; padding: 5px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;
+        }
+
+        .sub-btn {
+            display: block; width: 100%; padding: 12px 5px; font-size: 1.1rem;
+            background: #432517; color: #ECDBBF; border: 2px solid #ECDBBF;
+            border-radius: 8px; cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .sub-btn:active { transform: scale(0.95); }
+
+        /* リザルト専用の装飾 */
+        .result-title { font-size: 2rem; color: #8b4513; margin: 0 0 10px 0; text-shadow: 1px 1px 0px #fff; }
+        .reason-box { background: rgba(255,255,255,0.7); color: #333; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
+        
+        .split-container { display: flex; gap: 10px; text-align: left; flex-wrap: wrap; }
+        .player-data-box {
+            flex: 1; min-width: 280px; background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #8b4513; border-radius: 8px; padding: 10px;
+            box-sizing: border-box;
+        }
+        .player-name { font-size: 1.3rem; color: #432517; border-bottom: 2px dashed #8b4513; padding-bottom: 5px; margin-top: 0; }
+        
+        h4 { margin: 10px 0 5px 0; color: #d35400; font-size: 1.1rem; }
+        .list-items { margin: 0; padding-left: 25px; font-size: 0.95rem; line-height: 1.4; color: #333; }
+        .guess-items { margin: 0; padding-left: 0; list-style: none; font-size: 0.9rem; }
+        .guess-items li { display: inline-block; background: #ECDBBF; border: 1px solid #8b4513; border-radius: 15px; padding: 3px 8px; margin: 2px; }
+
+        .perfect { color: #e83e8c; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="perfect-badge" class="perfect" style="display: none;">✨ 尊い絆（パーフェクト） ✨</div>
-    <div id="result-text" class="result-title">判定中...</div>
-    <div id="reason-text" class="reason-box"></div>
-    
-    <div class="stats-box">
-        <p id="p1-display"></p>
-        <p id="p2-display"></p>
-    </div>
+<div id="bg-image"></div>
 
-    <button onclick="location.href='index.html'">エントランスに戻る</button>
+<div class="overlay">
+    <div class="modal-box">
+        <h2 id="result-title" class="result-title">判定中...</h2>
+        <div id="reason-text" class="reason-box"></div>
+        
+        <div class="modal-body">
+            <div class="split-container">
+                <!-- 先手データ -->
+                <div class="player-data-box">
+                    <h3 id="p1-name" class="player-name">先手</h3>
+                    <h4>❤️ 好きなものランキング</h4>
+                    <ol id="p1-likes" class="list-items"></ol>
+                    <h4>🤔 そうでもないもの</h4>
+                    <ul id="p1-dislikes" class="list-items"></ul>
+                    <h4>👉 相手に対して選んだ予想</h4>
+                    <ul id="p1-guesses" class="guess-items"></ul>
+                </div>
+                
+                <!-- 後手データ -->
+                <div class="player-data-box">
+                    <h3 id="p2-name" class="player-name">後手</h3>
+                    <h4>❤️ 好きなものランキング</h4>
+                    <ol id="p2-likes" class="list-items"></ol>
+                    <h4>🤔 そうでもないもの</h4>
+                    <ul id="p2-dislikes" class="list-items"></ul>
+                    <h4>👉 相手に対して選んだ予想</h4>
+                    <ul id="p2-guesses" class="guess-items"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-grid">
+            <button class="sub-btn" style="background: linear-gradient(to bottom, #28a745, #218838);" onclick="exportData()">💾 データを書き出す</button>
+            <button class="sub-btn" style="background: linear-gradient(to bottom, #FF9800 0%, #F57C00 100%);" onclick="location.href='index.html'">🚪 もどる</button>
+        </div>
+    </div>
 </div>
 
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const winner = urlParams.get('winner');
-    const reason = urlParams.get('reason');
-    const p1 = urlParams.get('p1');
-    const p2 = urlParams.get('p2');
-    const myId = urlParams.get('myId');
+    const resultDataStr = sessionStorage.getItem('shioya_game_result');
+    let rawResultData = null;
 
-    const resultEl = document.getElementById('result-text');
-    const reasonEl = document.getElementById('reason-text');
-    const p1El = document.getElementById('p1-display');
-    const p2El = document.getElementById('p2-display');
-    const perfectBadge = document.getElementById('perfect-badge');
+    if (resultDataStr) {
+        rawResultData = JSON.parse(resultDataStr);
+        const data = rawResultData.finalData;
 
-    // データの表示
-    reasonEl.innerText = reason;
-    p1El.innerText = p1;
-    p2El.innerText = p2;
+        // 勝敗と理由の表示
+        const resultEl = document.getElementById('result-title');
+        document.getElementById('reason-text').innerText = rawResultData.reason;
 
-    // 勝敗判定
-    if (winner === 'perfect') {
-        resultEl.innerText = "❤️ 完全勝利";
-        resultEl.className = "result-title perfect";
-        perfectBadge.style.display = "inline-block";
-    } else if (winner === 'draw') {
-        resultEl.innerText = "🤝 引き分け";
-        resultEl.className = "result-title draw";
-    } else if (winner === myId) {
-        resultEl.innerText = "🏆 YOU WIN!";
-        resultEl.className = "result-title win";
+        if (rawResultData.winner === 'perfect') {
+            resultEl.innerText = "✨ 尊い絆 (パーフェクト) ✨";
+            resultEl.className = "result-title perfect";
+        } else if (rawResultData.winner === 'draw') {
+            resultEl.innerText = "🤝 引き分け";
+        } else if (rawResultData.winner === rawResultData.myId) {
+            resultEl.innerText = "🏆 YOU WIN!";
+        } else {
+            resultEl.innerText = "💀 YOU LOSE";
+        }
+
+        // データの流し込み用ヘルパー関数
+        const populatePlayerInfo = (playerId, playerData) => {
+            document.getElementById(`${playerId}-name`).innerText = playerData.name;
+            
+            const likesHtml = playerData.likes.map(item => `<li>${item}</li>`).join('');
+            document.getElementById(`${playerId}-likes`).innerHTML = likesHtml;
+            
+            const dislikesHtml = playerData.dislikes.map(item => `<li>${item}</li>`).join('');
+            document.getElementById(`${playerId}-dislikes`).innerHTML = dislikesHtml;
+            
+            const guessesHtml = playerData.guesses.length > 0 
+                ? playerData.guesses.map(item => `<li>${item}</li>`).join('') 
+                : "<li>(選択なし)</li>";
+            document.getElementById(`${playerId}-guesses`).innerHTML = guessesHtml;
+        };
+
+        // UIへ反映
+        populatePlayerInfo('p1', data.p1);
+        populatePlayerInfo('p2', data.p2);
     } else {
-        resultEl.innerText = "💀 YOU LOSE";
-        resultEl.className = "result-title lose";
+        document.getElementById('result-title').innerText = "データが見つかりません";
+    }
+
+    // エクスポート機能（テキストファイルとしてダウンロード）
+    function exportData() {
+        if (!rawResultData) return alert("エクスポートするデータがありません。");
+        
+        // 人間の読みやすさは問わない、後でプログラムで読み込めるJSONフォーマット
+        const jsonString = JSON.stringify(rawResultData);
+        
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // 日付をファイル名に含める
+        const date = new Date();
+        const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`;
+        a.download = `shioya_game_result_${dateStr}.json`;
+        
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 </script>
 
