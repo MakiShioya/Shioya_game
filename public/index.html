@@ -95,13 +95,45 @@
     });
 
     // サーバーから「2人揃った」という合図を受け取る
-    socket.on('both ready', (data) => {
-        console.log("サーバーからの通知:", data.message);
-        document.getElementById('setup-screen').innerHTML = `
-            <h2>ゲームスタート！</h2>
-            <p>ここに相手のリストをシャッフルして表示します。</p>
-        `;
+    // サーバーから「ゲーム開始」を受け取る
+socket.on('game start', (data) => {
+    const container = document.getElementById('setup-screen');
+    
+    // クイズ画面のHTMLを構築
+    let html = `
+        <h2>${data.opponentName}の好きなものはどれ？</h2>
+        <p id="turn-display">${data.isMyTurn ? "★ あなたの番です" : "相手の番です..."}</p>
+        <div id="quiz-board" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+    `;
+
+    data.quizList.forEach((word, index) => {
+        html += `<button class="quiz-item" onclick="makeGuess('${word}', ${index})" id="btn-${index}">${word}</button>`;
     });
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    // 自分のターンじゃない時はボタンを押せなくする
+    toggleBoard(data.isMyTurn);
+});
+
+// 予想を送信する関数
+function makeGuess(word, index) {
+    console.log("予想を送信:", word);
+    socket.emit('make guess', { word: word, index: index });
+    // 連打防止
+    toggleBoard(false);
+}
+
+// ボードの有効/無効切り替え
+function toggleBoard(isMyTurn) {
+    const buttons = document.querySelectorAll('.quiz-item');
+    const display = document.getElementById('turn-display');
+    buttons.forEach(btn => {
+        btn.disabled = !isMyTurn;
+    });
+    display.innerText = isMyTurn ? "★ あなたの番です" : "相手の番です...";
+}
 </script>
 </body>
 </html>
