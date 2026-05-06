@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover">
-    <title>しおやゲーム（仮） - エントランス</title>
+    <title>好物当て - エントランス</title>
     
     <!-- しおや将棋のフォントとアイコン設定 -->
     <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
@@ -27,80 +27,81 @@
             -webkit-user-select: none; user-select: none;
         }
 
-        /* 背景画像の設定 */
         #bg-image {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1;
             background-image: url('script/image/mujin_haikei.PNG');
             background-size: cover; background-position: center; background-repeat: no-repeat;
         }
 
-        /* 画面中央に配置するためのオーバーレイ */
         .overlay {
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 100;
             justify-content: center; align-items: center; overscroll-behavior: none;
         }
 
-        /* モーダル風のメインコンテナ */
+        /* メインコンテナ：少しスリムに調整 */
         .modal-box {
-            position: relative; background: #fff8dc; padding: 25px;
+            position: relative; background: #fff8dc; padding: 20px;
             border-radius: 10px; border: 4px solid #8b4513; text-align: center;
-            width: 95%; max-width: 400px;
+            width: 90%; max-width: 360px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
         h1 {
-            font-size: 1.8rem; color: #8b4513; margin-top: 0; margin-bottom: 20px;
+            font-size: 1.6rem; color: #8b4513; margin-top: 0; margin-bottom: 15px;
             text-shadow: 1px 1px 0px #fff;
         }
 
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #8b4513; font-size: 1.1rem; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #8b4513; font-size: 1rem; }
         
-        /* 名前入力欄 */
         input[type="text"] {
-            width: 100%; padding: 12px; border: 2px solid #8b4513; border-radius: 8px;
-            font-size: 1.2rem; background: #fff; color: #333; text-align: center;
-            outline: none;
+            width: 100%; padding: 10px; border: 2px solid #8b4513; border-radius: 8px;
+            font-size: 1.1rem; background: #fff; color: #333; text-align: center; outline: none;
         }
-        input[type="text"]:focus { background: #ECDBBF; }
 
-        /* 電卓風UIのスタイル */
+        /* テンキー表示エリアを少しコンパクトに */
         .room-display {
-            font-size: 2.5rem; letter-spacing: 12px; background: #432517; padding: 15px;
-            border-radius: 8px; margin-bottom: 15px; min-height: 45px; color: #ECDBBF;
+            font-size: 2rem; letter-spacing: 10px; background: #432517; padding: 10px;
+            border-radius: 8px; margin-bottom: 10px; min-height: 40px; color: #ECDBBF;
             text-align: center; border: 3px inset #8b4513;
         }
 
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        /* テンキー：ボタンの間隔とサイズを縮小 */
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 15px; }
         
-        /* テンキーボタン */
         .keypad button {
-            padding: 15px 0; font-size: 1.5rem; font-weight: bold;
+            padding: 10px 0; font-size: 1.2rem; font-weight: bold;
             background: linear-gradient(to bottom, #8b4513, #5e3522);
             color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px;
-            cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: pointer; box-shadow: 0 3px 4px rgba(0,0,0,0.3);
             text-shadow: 1px 1px 2px #432517;
         }
-        .keypad button:active { transform: scale(0.95); }
+        .keypad button:active { transform: scale(0.95); box-shadow: none; }
         
-        /* 特殊キーの色分け */
         .keypad .key-c { background: linear-gradient(to bottom, #e83e8c, #c2185b); }
         .keypad .key-del { background: linear-gradient(to bottom, #6c757d, #495057); }
 
         /* 入室ボタン */
         #enter-btn {
-            padding: 15px; background: linear-gradient(to bottom, #FF9800 0%, #F57C00 100%);
+            padding: 12px; background: linear-gradient(to bottom, #FF9800 0%, #F57C00 100%);
             color: #fff; border: 3px solid #ECDBBF; border-radius: 10px;
-            width: 100%; font-size: 1.4rem; font-weight: bold; cursor: pointer;
+            width: 100%; font-size: 1.3rem; font-weight: bold; cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #432517;
-            transition: 0.2s;
+            margin-bottom: 10px;
         }
         #enter-btn:disabled {
             background: #ccc; border-color: #999; color: #666; text-shadow: none;
             cursor: not-allowed; box-shadow: none;
         }
-        #enter-btn:not(:disabled):active { transform: scale(0.95); }
+
+        /* homeへ戻るボタン：しおや将棋のサブボタン風 */
+        .btn-back {
+            background: #666; color: #ECDBBF; border: none; padding: 8px;
+            border-radius: 5px; width: 100%; font-size: 0.9rem; font-weight: bold;
+            cursor: pointer; opacity: 0.8;
+        }
+        .btn-back:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -109,11 +110,11 @@
 
 <div class="overlay">
     <div class="modal-box">
-        <h1>しおやゲーム（仮）</h1>
+        <h1>好物当て</h1>
 
         <div class="input-group">
             <label>あなたのお名前</label>
-            <input type="text" id="entry-name" placeholder="名前を入力" maxlength="8">
+            <input type="text" id="entry-name" placeholder="なまえを入力" maxlength="8">
         </div>
 
         <div class="input-group">
@@ -136,6 +137,7 @@
         </div>
 
         <button id="enter-btn" disabled>対局室へ入る</button>
+        <button class="btn-back" onclick="location.href='home.html'">ロビーへ戻る</button>
     </div>
 </div>
 
