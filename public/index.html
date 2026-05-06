@@ -44,9 +44,14 @@
 <script>
     const socket = io("https://shioya-shogi.onrender.com/match-game");
 
-    // 接続確認
+    // URLから部屋のIDを取得（なければ 'default-room' に入る）
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room') || 'default-room';
+
+    // 接続確認と入室
     socket.on('connect', () => {
         console.log("司令塔に繋がりました！ ID:", socket.id);
+        socket.emit('join room', roomId);
     });
 
     // 入力欄を自動生成する関数
@@ -58,7 +63,6 @@
             input.maxLength = 10;
             input.className = className;
             input.placeholder = `${placeholderText} ${i}`;
-            // 5個以上入力されたらボタンを有効にするチェックを入れたい
             input.addEventListener('input', checkValidity);
             container.appendChild(input);
         }
@@ -73,18 +77,30 @@
     createInputs('likes-container', 'like', '好きなもの');
     createInputs('dislikes-container', 'dislike', 'そうでもないもの');
 
+    // 送信ボタンの処理
     document.getElementById('submit-btn').addEventListener('click', () => {
         const likes = Array.from(document.querySelectorAll('.like')).map(i => i.value.trim()).filter(v => v !== "");
         const dislikes = Array.from(document.querySelectorAll('.dislike')).map(i => i.value.trim()).filter(v => v !== "");
         
-        // サーバーに送るデータ
-        const myData = {
-            likes: likes, // 1位から順に入っている
-            dislikes: dislikes
-        };
+        const myData = { likes: likes, dislikes: dislikes };
         
-        console.log("データを送信します:", myData);
-        // ここで一旦止めて、次にサーバー側の受け取り処理を作ります
+        // サーバーへ送信
+        socket.emit('submit lists', myData);
+
+        // 画面を待機状態に切り替える
+        document.getElementById('setup-screen').innerHTML = `
+            <h2>相手の入力を待っています...</h2>
+            <p>Room ID: ${roomId}</p>
+        `;
+    });
+
+    // サーバーから「2人揃った」という合図を受け取る
+    socket.on('both ready', (data) => {
+        console.log("サーバーからの通知:", data.message);
+        document.getElementById('setup-screen').innerHTML = `
+            <h2>ゲームスタート！</h2>
+            <p>ここに相手のリストをシャッフルして表示します。</p>
+        `;
     });
 </script>
 </body>
