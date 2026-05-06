@@ -99,8 +99,9 @@
     document.getElementById('enter-btn').addEventListener('click', () => {
         const name = document.getElementById('entry-name').value.trim();
         if (name && currentRoomId.length === 4) {
-            // game.html へパラメータ付きで遷移する
-            window.location.href = `game.html?room=${currentRoomId}&name=${encodeURIComponent(name)}`;
+            // ★追加: リロードしても本人だと証明するための固有IDを発行
+            const clientId = 'client_' + Math.random().toString(36).substr(2, 9);
+            window.location.href = `game.html?room=${currentRoomId}&name=${encodeURIComponent(name)}&clientId=${clientId}`;
         }
     });
 
