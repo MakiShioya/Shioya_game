@@ -5,156 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover">
     <title>好物当て - 対局室</title>
     
-    <!-- フォントとアイコンの読み込み -->
     <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
     <link rel="icon" href="script/image/komiya_icon.png"> 
     
     <style>
-        @font-face {
-            font-family: 'SetoFont';
-            src: url('font/setofont.ttf') format('truetype');
-            font-display: block;
-        }
-
-        * {
-            font-family: 'SetoFont', "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
-            box-sizing: border-box;
-        }
-
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #2c3e50;
-            -webkit-user-select: none; user-select: none;
-        }
-
-        #bg-image {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1;
-            background-image: url('script/image/mujin_haikei.PNG');
-            background-size: cover; background-position: center; background-repeat: no-repeat;
-        }
-
-        .screen-wrapper {
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100%; padding: 15px; overscroll-behavior: none; position: relative;
-        }
-
-        /* 右上のメニューボタン */
-        .top-menu-btn {
-            position: absolute; top: 15px; right: 15px;
-            background: linear-gradient(to bottom, #8b4513, #5e3522);
-            color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px;
-            padding: 8px 12px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10;
-            font-size: 1rem;
-        }
+        @font-face { font-family: 'SetoFont'; src: url('font/setofont.ttf') format('truetype'); font-display: block; }
+        * { font-family: 'SetoFont', "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #2c3e50; -webkit-user-select: none; user-select: none; }
+        #bg-image { position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1; background-image: url('script/image/mujin_haikei.PNG'); background-size: cover; background-position: center; background-repeat: no-repeat; }
+        
+        .screen-wrapper { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 15px; overscroll-behavior: none; position: relative; }
+        .top-menu-btn { position: absolute; top: 15px; right: 15px; background: linear-gradient(to bottom, #8b4513, #5e3522); color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px; padding: 8px 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; font-size: 1rem; }
         .top-menu-btn:active { transform: scale(0.95); }
-
-        .container {
-            background: #fff8dc; padding: 20px; border-radius: 10px;
-            border: 4px solid #8b4513; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            width: 100%; max-width: 550px; max-height: 95vh;
-            display: flex; flex-direction: column; overflow-y: auto;
-        }
-
-        h1, h2, h3 {
-            color: #8b4513; margin-top: 0; text-shadow: 1px 1px 0px #fff; text-align: center;
-        }
-
-        .status-box {
-            background: rgba(255, 255, 255, 0.8); color: #333; border: 2px solid #8b4513;
-            border-radius: 8px; padding: 10px; font-weight: bold; margin-bottom: 15px; text-align: center;
-        }
+        .container { background: #fff8dc; padding: 20px; border-radius: 10px; border: 4px solid #8b4513; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 550px; max-height: 95vh; display: flex; flex-direction: column; overflow-y: auto; }
+        h1, h2, h3 { color: #8b4513; margin-top: 0; text-shadow: 1px 1px 0px #fff; text-align: center; }
         
-        .master-badge {
-            background: #fff3b0; border: 2px solid #8b4513; color: #8b4513;
-            border-radius: 8px; padding: 10px; font-weight: bold; margin-bottom: 15px; text-align: center;
-        }
-
-        .input-group {
-            background: rgba(255,255,255,0.6); border-radius: 8px; padding: 15px;
-            margin-bottom: 15px; border: 2px dashed #d2b48c;
-        }
+        .status-box { background: rgba(255, 255, 255, 0.8); color: #333; border: 2px solid #8b4513; border-radius: 8px; padding: 10px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .master-badge { background: #fff3b0; border: 2px solid #8b4513; color: #8b4513; border-radius: 8px; padding: 10px; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .input-group { background: rgba(255,255,255,0.6); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 2px dashed #d2b48c; }
         .input-group label { font-weight: bold; color: #8b4513; font-size: 1.1rem; }
-        
         .flex-input { display: flex; align-items: center; margin-bottom: 8px; gap: 5px; }
         .flex-input span { font-weight: bold; color: #8b4513; white-space: nowrap; font-size: 1.1rem; width: 45px; text-align: right; }
-
-        input[type="text"], select {
-            width: 100%; padding: 10px; border: 2px solid #8b4513; border-radius: 6px;
-            font-size: 1.1rem; outline: none; background: #fff;
-        }
+        input[type="text"], select { width: 100%; padding: 10px; border: 2px solid #8b4513; border-radius: 6px; font-size: 1.1rem; outline: none; background: #fff; }
         input[type="text"]:focus { background: #ECDBBF; }
         select { flex-grow: 1; }
 
-        .btn-primary {
-            padding: 15px; background: linear-gradient(to bottom, #FF9800, #F57C00);
-            color: #fff; border: 3px solid #ECDBBF; border-radius: 10px;
-            width: 100%; font-size: 1.3rem; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #432517; transition: 0.2s;
-        }
+        .btn-primary { padding: 15px; background: linear-gradient(to bottom, #FF9800, #F57C00); color: #fff; border: 3px solid #ECDBBF; border-radius: 10px; width: 100%; font-size: 1.3rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #432517; transition: 0.2s; }
         .btn-primary:disabled { background: #ccc; border-color: #999; color: #666; text-shadow: none; cursor: not-allowed; box-shadow: none; }
         .btn-primary:not(:disabled):active { transform: scale(0.95); }
-
-        .btn-transfer {
-            background: linear-gradient(to bottom, #4facfe, #00f2fe); color: #432517;
-            text-shadow: 1px 1px 0px #fff; border: 2px solid #ECDBBF; padding: 10px;
-            border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
+        .btn-transfer { background: linear-gradient(to bottom, #4facfe, #00f2fe); color: #432517; text-shadow: 1px 1px 0px #fff; border: 2px solid #ECDBBF; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .btn-transfer:active { transform: scale(0.95); }
 
-        /* ▼ 修正: ステータスボードを2つのカードに分離 */
-        #stats-board {
-            display: flex; gap: 10px; margin-bottom: 15px;
-        }
-        .stat-card {
-            flex: 1; background: rgba(255, 255, 255, 0.9); border: 2px solid #8b4513;
-            border-radius: 8px; padding: 10px; text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #333; font-weight: bold;
-        }
-        .stat-name {
-            font-size: 0.95rem; color: #8b4513; border-bottom: 1px dashed #d2b48c;
-            margin-bottom: 5px; padding-bottom: 3px;
-        }
-        .stat-values { font-size: 1.1rem; }
+        #stats-board { display: flex; gap: 10px; margin-bottom: 15px; }
+        .stat-card { flex: 1; background: rgba(255, 255, 255, 0.9); border: 2px solid #8b4513; border-radius: 8px; padding: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #333; font-weight: bold; }
+        .stat-name { font-size: 0.95rem; color: #8b4513; border-bottom: 1px dashed #d2b48c; margin-bottom: 5px; padding-bottom: 3px; }
+        .stat-values { font-size: 1.3rem; color: #ff4d4d;}
 
-        #game-log {
-            height: 120px; overflow-y: auto; background: rgba(255,255,255,0.8);
-            padding: 10px; border: 2px solid #8b4513; border-radius: 8px;
-            margin-bottom: 15px; font-size: 1rem; color: #333;
-        }
+        #game-log { height: 120px; overflow-y: auto; background: rgba(255,255,255,0.8); padding: 10px; border: 2px solid #8b4513; border-radius: 8px; margin-bottom: 15px; font-size: 1rem; color: #333; }
         #game-log p { margin: 5px 0; border-bottom: 1px dashed #d2b48c; padding-bottom: 5px; }
-
         #quiz-board { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 5px; }
-        .quiz-item {
-            background: linear-gradient(to bottom, #8b4513, #5e3522); color: #ECDBBF;
-            border: 3px solid #ECDBBF; border-radius: 10px; padding: 15px 5px;
-            font-size: 1.1rem; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #000;
-        }
+        .quiz-item { background: linear-gradient(to bottom, #8b4513, #5e3522); color: #ECDBBF; border: 3px solid #ECDBBF; border-radius: 10px; padding: 15px 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #000; }
         .quiz-item:not([disabled]):active { transform: scale(0.95); }
         .quiz-item[disabled] { cursor: not-allowed; }
 
-        /* ▼ 追加: オーバーレイとモーダル（メニュー用） */
-        .overlay {
-            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 100;
-            justify-content: center; align-items: center; overscroll-behavior: none;
-        }
+        .overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; overscroll-behavior: none; }
         .modal-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 15px 0; }
-        .sub-btn {
-            width: 100%; padding: 12px; font-size: 1.1rem; background: #432517;
-            color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px;
-            cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
+        .sub-btn { width: 100%; padding: 12px; font-size: 1.1rem; background: #432517; color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .sub-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div id="bg-image"></div>
-
-<!-- 右上のメニューボタン -->
 <button class="top-menu-btn" onclick="openModal('menuModal')">≡ メニュー</button>
 
 <div class="screen-wrapper">
@@ -174,22 +76,31 @@
             <h3 style="text-align: left; margin-bottom: 15px;">ルール設定 <span id="rule-lock-msg" style="font-size:0.8em; color:gray; text-shadow: none;"></span></h3>
             <button id="transfer-master-btn" class="btn-transfer" style="display: none;">👑 マスター権限を相手に譲渡する</button>
 
+            <!-- ★追加: ジャンル入力 -->
+            <div class="flex-input" style="margin-bottom: 15px;">
+                <label style="flex:1;">🏷️ ジャンル (お題):</label>
+                <input type="text" id="game-genre" placeholder="例: 食べ物" value="食べ物" style="width: auto; flex: none;">
+            </div>
+
+            <!-- ★修正: 選択肢を3〜10に変更 -->
             <div class="flex-input" style="margin-bottom: 15px;">
                 <label style="flex:1;">❤️ 好きなものの個数:</label>
                 <select id="likes-count" style="width: auto; flex: none;">
-                    <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+                    <option value="3">3個</option><option value="4">4個</option><option value="5" selected>5個</option><option value="6">6個</option>
+                    <option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
                 </select>
             </div>
             <div class="flex-input" style="margin-bottom: 15px;">
                 <label style="flex:1;">🤔 そうでもないものの個数:</label>
                 <select id="dislikes-count" style="width: auto; flex: none;">
-                    <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+                    <option value="3" selected>3個</option><option value="4">4個</option><option value="5">5個</option><option value="6">6個</option>
+                    <option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
                 </select>
             </div>
             <div class="flex-input">
                 <label style="flex:1;">💔 ライフ (ドボン許容回数):</label>
                 <select id="lives-count" style="width: auto; flex: none;">
-                    <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+                    <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
                 </select>
             </div>
         </div>
@@ -202,12 +113,13 @@
         <div class="status-box" id="setup-status">相手の入力を待っています...</div>
         
         <div class="input-group">
-            <h2 style="text-align: left;">❤️ 好きなものランキング</h2>
+            <!-- ★ジャンル表示 -->
+            <h2 style="text-align: left;">❤️ 好きな <span class="genre-display-text">---</span></h2>
             <p style="font-size:0.9em; color:#8b4513; margin-top:-5px; font-weight:bold;">(1位から順に入力してください)</p>
             <div id="likes-container"></div>
         </div>
         <div class="input-group">
-            <h2 style="text-align: left;">🤔 そうでもないもの</h2>
+            <h2 style="text-align: left;">🤔 そうでもない <span class="genre-display-text">---</span></h2>
             <div id="dislikes-container"></div>
         </div>
         <button id="submit-btn" class="btn-primary" disabled>入力を完了する</button>
@@ -215,7 +127,6 @@
 
     <!-- ③ ゲーム画面 -->
     <div class="container" id="game-screen" style="display: none;">
-        <!-- ▼ 修正: ステータスボードの分離 -->
         <div id="stats-board">
             <div class="stat-card" id="p1-stats">
                 <div class="stat-name">先手：待機中...</div>
@@ -229,14 +140,15 @@
         
         <div id="game-log"></div>
         
-        <h2><span id="opponent-name-display"></span>の好きなものはどれ？</h2>
+        <!-- ★ジャンル表示 -->
+        <h2><span id="opponent-name-display"></span>の好きな<span class="genre-display-text">---</span>は？</h2>
         <p id="turn-display" class="status-box">通信中...</p>
         
         <div id="quiz-board"></div>
     </div>
 </div>
 
-<!-- ▼ メニューポップアップ -->
+<!-- メニューポップアップ -->
 <div id="menuModal" class="overlay" style="display: none;">
     <div class="container" style="max-width: 320px; padding: 20px;">
         <h2>メニュー</h2>
@@ -248,7 +160,7 @@
     </div>
 </div>
 
-<!-- ▼ ルール確認ポップアップ -->
+<!-- ルール確認ポップアップ -->
 <div id="rulesModal" class="overlay" style="display: none;">
     <div class="container" style="max-width: 400px; padding: 20px;">
         <h2>ルール確認</h2>
@@ -271,10 +183,9 @@
     const paramName = urlParams.get('name');
     const clientId = urlParams.get('clientId'); 
 
-    let currentRules = { likesCount: 5, dislikesCount: 5, lives: 3 };
+    let currentRules = { genre: "食べ物", likesCount: 5, dislikesCount: 3, lives: 2 };
     let amILobbyReady = false, amIInputReady = false, amIMaster = false;
 
-    // ▼ 修正: 初期ロード時に名前があれば開始ボタンを即有効化
     window.addEventListener('DOMContentLoaded', () => {
         if (paramName) {
             const nameInput = document.getElementById('player-name');
@@ -288,11 +199,12 @@
     const sendSettings = () => {
         if(amILobbyReady) return; 
         const nameVal = document.getElementById('player-name').value.trim();
-        document.getElementById('lobby-ready-btn').disabled = (nameVal === ""); // ▼ ここでもチェック
+        document.getElementById('lobby-ready-btn').disabled = (nameVal === "");
         
         const data = { playerName: nameVal };
         if (amIMaster) {
             data.rules = {
+                genre: document.getElementById('game-genre').value || "食べ物",
                 likesCount: parseInt(document.getElementById('likes-count').value),
                 dislikesCount: parseInt(document.getElementById('dislikes-count').value),
                 lives: parseInt(document.getElementById('lives-count').value)
@@ -302,6 +214,7 @@
     };
 
     document.getElementById('player-name').addEventListener('input', sendSettings);
+    document.getElementById('game-genre').addEventListener('input', sendSettings);
     document.getElementById('likes-count').addEventListener('change', sendSettings);
     document.getElementById('dislikes-count').addEventListener('change', sendSettings);
     document.getElementById('lives-count').addEventListener('change', sendSettings);
@@ -318,6 +231,8 @@
                 document.getElementById('master-badge').innerText = "👑 あなたがゲームマスターです";
                 document.getElementById('master-badge').style.background = "#fff3b0";
                 document.getElementById('rule-lock-msg').innerText = "(変更可能)";
+                
+                document.getElementById('game-genre').disabled = amILobbyReady;
                 document.getElementById('likes-count').disabled = amILobbyReady;
                 document.getElementById('dislikes-count').disabled = amILobbyReady;
                 document.getElementById('lives-count').disabled = amILobbyReady;
@@ -326,10 +241,14 @@
                 document.getElementById('master-badge').innerText = "👤 あなたはゲストです";
                 document.getElementById('master-badge').style.background = "#e0e0e0";
                 document.getElementById('rule-lock-msg').innerText = "(マスターのみ変更可)";
+                
+                document.getElementById('game-genre').disabled = true;
                 document.getElementById('likes-count').disabled = true;
                 document.getElementById('dislikes-count').disabled = true;
                 document.getElementById('lives-count').disabled = true;
                 document.getElementById('transfer-master-btn').style.display = "none";
+                
+                document.getElementById('game-genre').value = info.rules.genre;
                 document.getElementById('likes-count').value = info.rules.likesCount;
                 document.getElementById('dislikes-count').value = info.rules.dislikesCount;
                 document.getElementById('lives-count').value = info.rules.lives;
@@ -365,9 +284,12 @@
         currentRules = rules;
         document.getElementById('lobby-screen').style.display = 'none';
         document.getElementById('setup-screen').style.display = 'flex';
+        
+        // ★ジャンル名を画面のテキストに反映
+        document.querySelectorAll('.genre-display-text').forEach(el => el.innerText = currentRules.genre);
 
-        createInputs('likes-container', 'like', '好きなもの', currentRules.likesCount, true);
-        createInputs('dislikes-container', 'dislike', 'そうでもないもの', currentRules.dislikesCount, false);
+        createInputs('likes-container', 'like', `${currentRules.genre}を入力`, currentRules.likesCount, true);
+        createInputs('dislikes-container', 'dislike', `${currentRules.genre}を入力`, currentRules.dislikesCount, false);
     });
 
     function createInputs(containerId, className, placeholder, count, isRanked) {
@@ -434,15 +356,15 @@
         document.getElementById('quiz-board').innerHTML = html;
     }
 
-    // ▼ 修正: ステータスの表示を見やすく分離
+    // ★修正: スコア（ポイント）を非表示にし、ライフのみ表示
     socket.on('sync game state', (state) => {
         document.getElementById('p1-stats').innerHTML = `
             <div class="stat-name">先手：${state.stats.p1.name}</div>
-            <div class="stat-values">❤️ ${state.stats.p1.data.lives} / 🏆 ${state.stats.p1.data.score}pt</div>
+            <div class="stat-values">❤️ ${state.stats.p1.data.lives}</div>
         `;
         document.getElementById('p2-stats').innerHTML = `
             <div class="stat-name">後手：${state.stats.p2.name}</div>
-            <div class="stat-values">❤️ ${state.stats.p2.data.lives} / 🏆 ${state.stats.p2.data.score}pt</div>
+            <div class="stat-values">❤️ ${state.stats.p2.data.lives}</div>
         `;
         toggleTurnDisplay(state.turn === socket.id);
     });
@@ -491,7 +413,6 @@
         display.style.background = isMyTurn ? "#ffcccc" : "rgba(255, 255, 255, 0.8)";
     }
 
-    // ▼ 追加: モーダル操作関数
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function switchModal(closeId, openId) { closeModal(closeId); openModal(openId); }
