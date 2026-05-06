@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>しおやゲーム（仮） - 入力画面</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f4f8; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; }
+        input { width: 80%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .like { border-left: 5px solid #ff4d4d; }
+        .dislike { border-left: 5px solid #4d94ff; }
+        button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px; }
+        button:disabled { background: #ccc; }
+        h2 { font-size: 1.2em; color: #333; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="setup-screen">
+    <h1>しおやゲーム（仮）</h1>
+    <p>お互いのことを知るためのゲームです。</p>
+    
+    <div class="input-group">
+        <h2>❤️ 好きなもの (5〜10個)</h2>
+        <div id="likes-container">
+            <!-- ここにJavaScriptで入力欄を生成します -->
+        </div>
+    </div>
+
+    <div class="input-group">
+        <h2>🤔 そうでもないもの (5〜10個)</h2>
+        <div id="dislikes-container">
+            <!-- ここにJavaScriptで入力欄を生成します -->
+        </div>
+    </div>
+
+    <button id="submit-btn" disabled>準備完了！</button>
+</div>
+
+<!-- Socket.IOの読み込み（Renderのサーバーから直接持ってくる） -->
+<script src="https://shioya-shogi.onrender.com/socket.io/socket.io.js"></script>
+<script>
+    const socket = io("https://shioya-shogi.onrender.com/match-game");
+
+    // 接続確認
+    socket.on('connect', () => {
+        console.log("司令塔に繋がりました！ ID:", socket.id);
+    });
+
+    // 入力欄を自動生成する関数
+    function createInputs(containerId, className, placeholderText) {
+        const container = document.getElementById(containerId);
+        for (let i = 1; i <= 10; i++) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.maxLength = 10;
+            input.className = className;
+            input.placeholder = `${placeholderText} ${i}`;
+            // 5個以上入力されたらボタンを有効にするチェックを入れたい
+            input.addEventListener('input', checkValidity);
+            container.appendChild(input);
+        }
+    }
+
+    function checkValidity() {
+        const likes = Array.from(document.querySelectorAll('.like')).filter(i => i.value.trim() !== "");
+        const dislikes = Array.from(document.querySelectorAll('.dislike')).filter(i => i.value.trim() !== "");
+        document.getElementById('submit-btn').disabled = !(likes.length >= 5 && dislikes.length >= 5);
+    }
+
+    createInputs('likes-container', 'like', '好きなもの');
+    createInputs('dislikes-container', 'dislike', 'そうでもないもの');
+
+    document.getElementById('submit-btn').addEventListener('click', () => {
+        const likes = Array.from(document.querySelectorAll('.like')).map(i => i.value.trim()).filter(v => v !== "");
+        const dislikes = Array.from(document.querySelectorAll('.dislike')).map(i => i.value.trim()).filter(v => v !== "");
+        
+        // サーバーに送るデータ
+        const myData = {
+            likes: likes, // 1位から順に入っている
+            dislikes: dislikes
+        };
+        
+        console.log("データを送信します:", myData);
+        // ここで一旦止めて、次にサーバー側の受け取り処理を作ります
+    });
+</script>
+</body>
+</html>
