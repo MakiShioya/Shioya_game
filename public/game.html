@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>しおやゲーム（仮）</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f4f8; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+        .flex-input { display: flex; align-items: center; margin-bottom: 5px; }
+        .flex-input span { width: 50px; font-weight: bold; }
+        input[type="text"], select { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .like { border-left: 5px solid #ff4d4d; }
+        .dislike { border-left: 5px solid #4d94ff; }
+        button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px; width: 100%; font-size: 1.1em; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        h2 { font-size: 1.2em; color: #333; }
+        .status-box { background: #e6f2ff; padding: 10px; text-align: center; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
+        .master-badge { font-size: 1.1em; padding: 10px; text-align: center; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
+        .btn-transfer { background: #ff9900; margin-bottom: 10px; font-size: 0.9em; }
+        #stats-board { display: flex; justify-content: space-between; background: #333; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; }
+        #game-log { height: 100px; overflow-y: auto; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; }
+        #game-log p { margin: 5px 0; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<!-- ① ロビー画面 -->
+<div class="container" id="lobby-screen">
+    <h1>しおやゲーム（仮） - ロビー</h1>
+    <div id="master-badge" class="master-badge" style="display: none;"></div>
+    <div class="status-box" id="lobby-status">サーバーに接続中...</div>
+    
+    <div class="input-group">
+        <label>あなたのお名前:<br><input type="text" id="player-name" placeholder="名前を入力してください"></label>
+    </div>
+
+    <div class="input-group">
+        <h3>ルール設定 <span id="rule-lock-msg" style="font-size:0.8em; color:gray;"></span></h3>
+        <button id="transfer-master-btn" class="btn-transfer" style="display: none;">👑 マスター権限を相手に譲渡する</button>
+
+        <label>❤️ 好きなものの個数: 
+            <select id="likes-count">
+                <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+            </select>
+        </label><br><br>
+        <label>🤔 そうでもないものの個数: 
+            <select id="dislikes-count">
+                <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+            </select>
+        </label><br><br>
+        <label>💔 ライフ (ドボン許容回数): 
+            <select id="lives-count">
+                <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+            </select>
+        </label>
+    </div>
+    <button id="lobby-ready-btn" disabled>この設定で開始！</button>
+</div>
+
+<!-- ② 入力画面 -->
+<div class="container" id="setup-screen" style="display: none;">
+    <h1>リスト入力</h1>
+    <div class="status-box" id="setup-status">相手の入力を待っています...</div>
+    
+    <div class="input-group">
+        <h2>❤️ 好きなものランキング <span style="font-size:0.8em; color:gray;">(1位から順に入力してください)</span></h2>
+        <div id="likes-container"></div>
+    </div>
+    <div class="input-group">
+        <h2>🤔 そうでもないもの</h2>
+        <div id="dislikes-container"></div>
+    </div>
+    <button id="submit-btn" disabled>入力を完了する</button>
+</div>
+
+<!-- ③ ゲーム画面 -->
+<div class="container" id="game-screen" style="display: none;">
+    <div id="stats-board">
+        <div id="p1-stats">先手: 待機中...</div>
+        <div id="p2-stats">後手: 待機中...</div>
+    </div>
+    <div id="game-log"></div>
+    
+    <h2><span id="opponent-name-display"></span>の好きなものはどれ？</h2>
+    <p id="turn-display" class="status-box">通信中...</p>
+    
+    <div id="quiz-board" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+    const socket = io("https://shogi.shioya-soft.com/match-game", { transports: ['websocket'] });
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room') || 'default-room';
+    
+    // ★追加: index.htmlから渡された名前を取得
+    const paramName = urlParams.get('name'); 
+
+    let currentRules = { likesCount: 5, dislikesCount: 5, lives: 3 };
+    let amILobbyReady = false, amIInputReady = false, amIMaster = false;
+
+    // ★追加: 取得した名前を入力欄にセットしておく
+    window.addEventListener('DOMContentLoaded', () => {
+        if (paramName) {
+            document.getElementById('player-name').value = paramName;
+        }
+    });
+
+    socket.on('connect', () => socket.emit('join room', roomId));
+
+    const sendSettings = () => {
+        if(amILobbyReady) return; 
+        const data = { playerName: document.getElementById('player-name').value };
+        if (amIMaster) {
+            data.rules = {
+                likesCount: parseInt(document.getElementById('likes-count').value),
+                dislikesCount: parseInt(document.getElementById('dislikes-count').value),
+                lives: parseInt(document.getElementById('lives-count').value)
+            };
+        }
+        socket.emit('update rule', data);
+        document.getElementById('lobby-ready-btn').disabled = (data.playerName.trim() === "");
+    };
+
+    document.getElementById('player-name').addEventListener('input', sendSettings);
+    document.getElementById('likes-count').addEventListener('change', sendSettings);
+    document.getElementById('dislikes-count').addEventListener('change', sendSettings);
+    document.getElementById('lives-count').addEventListener('change', sendSettings);
+    document.getElementById('transfer-master-btn').addEventListener('click', () => socket.emit('transfer master'));
+
+    socket.on('room updated', (info) => {
+        const oppId = Object.keys(info.players).find(id => id !== socket.id);
+        const oppInfo = oppId ? info.players[oppId] : null;
+        amIMaster = (info.master === socket.id);
+
+        if (info.status === 'lobby') {
+            document.getElementById('master-badge').style.display = "block";
+            if (amIMaster) {
+                document.getElementById('master-badge').innerText = "👑 あなたがゲームマスターです";
+                document.getElementById('master-badge').style.background = "#fff3b0";
+                document.getElementById('rule-lock-msg').innerText = "(変更可能)";
+                document.getElementById('likes-count').disabled = amILobbyReady;
+                document.getElementById('dislikes-count').disabled = amILobbyReady;
+                document.getElementById('lives-count').disabled = amILobbyReady;
+                document.getElementById('transfer-master-btn').style.display = (oppInfo && !amILobbyReady) ? "block" : "none";
+            } else {
+                document.getElementById('master-badge').innerText = "👤 あなたはゲストです";
+                document.getElementById('master-badge').style.background = "#e0e0e0";
+                document.getElementById('rule-lock-msg').innerText = "(マスターのみ変更可)";
+                document.getElementById('likes-count').disabled = true;
+                document.getElementById('dislikes-count').disabled = true;
+                document.getElementById('lives-count').disabled = true;
+                document.getElementById('transfer-master-btn').style.display = "none";
+                document.getElementById('likes-count').value = info.rules.likesCount;
+                document.getElementById('dislikes-count').value = info.rules.dislikesCount;
+                document.getElementById('lives-count').value = info.rules.lives;
+            }
+
+            let st = "入室者: 1人（相手を待っています）";
+            if (oppInfo) {
+                if (amILobbyReady && oppInfo.lobbyReady) st = "両者準備完了！間もなく移動します...";
+                else if (amILobbyReady) st = `あなたは準備OK。${oppInfo.name}を待っています...`;
+                else if (oppInfo.lobbyReady) st = `${oppInfo.name}が準備OK！あなたの準備を待っています。`;
+                else st = `相手(${oppInfo.name})が入室しました。`;
+            }
+            document.getElementById('lobby-status').innerText = st;
+        }
+        if (info.status === 'inputting') {
+            let st = "";
+            if (oppInfo) {
+                if (amIInputReady && !oppInfo.inputReady) st = `あなたは入力完了！ ${oppInfo.name} を待っています...`;
+                else if (!amIInputReady && oppInfo.inputReady) st = `${oppInfo.name} は入力を終えました！`;
+                else if (!amIInputReady) st = `お互いに入力中です...`;
+            }
+            document.getElementById('setup-status').innerText = st;
+        }
+    });
+
+    document.getElementById('lobby-ready-btn').addEventListener('click', () => {
+        amILobbyReady = true;
+        document.querySelectorAll('#lobby-screen input, #lobby-screen select, #lobby-screen button').forEach(el => el.disabled = true);
+        socket.emit('lobby ready', document.getElementById('player-name').value);
+    });
+
+    socket.on('start inputting', (rules) => {
+        currentRules = rules;
+        document.getElementById('lobby-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'block';
+
+        createInputs('likes-container', 'like', '好きなもの', currentRules.likesCount, true);
+        createInputs('dislikes-container', 'dislike', 'そうでもないもの', currentRules.dislikesCount, false);
+    });
+
+    function createInputs(containerId, className, placeholder, count, isRanked) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = ""; 
+        for (let i = 1; i <= count; i++) {
+            const div = document.createElement('div');
+            div.className = 'flex-input';
+            const span = document.createElement('span');
+            span.innerText = isRanked ? `${i}位:` : `・`;
+            const input = document.createElement('input');
+            input.type = 'text'; input.maxLength = 10; input.className = className;
+            input.placeholder = placeholder;
+            input.addEventListener('input', checkInputValidity);
+            div.appendChild(span); div.appendChild(input);
+            container.appendChild(div);
+        }
+    }
+
+    function checkInputValidity() {
+        const likes = Array.from(document.querySelectorAll('.like')).filter(i => i.value.trim() !== "");
+        const dislikes = Array.from(document.querySelectorAll('.dislike')).filter(i => i.value.trim() !== "");
+        document.getElementById('submit-btn').disabled = !(likes.length === currentRules.likesCount && dislikes.length === currentRules.dislikesCount);
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', () => {
+        const likes = Array.from(document.querySelectorAll('.like')).map(i => i.value.trim());
+        const dislikes = Array.from(document.querySelectorAll('.dislike')).map(i => i.value.trim());
+        amIInputReady = true;
+        document.querySelectorAll('#setup-screen input, #setup-screen button').forEach(el => el.disabled = true);
+        socket.emit('submit lists', { likes: likes, dislikes: dislikes });
+    });
+
+    socket.on('game start', (data) => {
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        document.getElementById('opponent-name-display').innerText = data.opponentName;
+
+        let html = "";
+        data.quizList.forEach((word, index) => {
+            html += `<button class="quiz-item" onclick="makeGuess('${word}', ${index})" id="btn-${index}">${word}</button>`;
+        });
+        document.getElementById('quiz-board').innerHTML = html;
+    });
+
+    socket.on('sync game state', (state) => {
+        document.getElementById('p1-stats').innerText = `先手(${state.stats.p1.name}) : ライフ ${state.stats.p1.data.lives} / P ${state.stats.p1.data.score}`;
+        document.getElementById('p2-stats').innerText = `後手(${state.stats.p2.name}) : ライフ ${state.stats.p2.data.lives} / P ${state.stats.p2.data.score}`;
+        toggleTurnDisplay(state.turn === socket.id);
+    });
+
+    function makeGuess(word, index) {
+        socket.emit('make guess', { word: word, index: index });
+        toggleTurnDisplay(false); 
+    }
+
+    socket.on('guess result', (data) => {
+        // ログに結果を表示
+        const logArea = document.getElementById('game-log');
+        logArea.innerHTML = `<p><strong>${data.guesserName}</strong>: ${data.logMsg}</p>` + logArea.innerHTML;
+
+        // ボタンを押した本人の画面だけ、そのボタンを無効化する
+        if (data.guesserId === socket.id) {
+            const btn = document.getElementById(`btn-${data.btnIndex}`);
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+            btn.style.background = "gray";
+        }
+
+        if (data.isGameOver) {
+            let resultMsg = data.endReason + "\n\n";
+            if (data.winner === 'perfect') resultMsg += "🎉 引き分け (パーフェクト！)";
+            else if (data.winner === 'draw') resultMsg += "🤝 引き分け";
+            else if (data.winner === socket.id) resultMsg += "🏆 あなたの勝ちです！";
+            else resultMsg += "💀 あなたの負けです...";
+            
+            document.getElementById('turn-display').innerText = "ゲーム終了！";
+            document.getElementById('turn-display').style.background = "#ffd700";
+            
+            // 少し待ってからアラートを出す（ログを読ませるため）
+            setTimeout(() => alert(resultMsg), 500);
+        }
+    });
+
+    function toggleTurnDisplay(isMyTurn) {
+        const buttons = document.querySelectorAll('.quiz-item:not([disabled])');
+        buttons.forEach(btn => btn.disabled = !isMyTurn);
+        const display = document.getElementById('turn-display');
+        display.innerText = isMyTurn ? "★ あなたの番です" : "相手の番です...";
+        display.style.background = isMyTurn ? "#ffcccc" : "#e6f2ff";
+    }
+</script>
+</body>
+</html>
