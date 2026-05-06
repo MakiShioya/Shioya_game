@@ -37,8 +37,19 @@
         /* 画面中央に配置するためのラッパー */
         .screen-wrapper {
             display: flex; justify-content: center; align-items: center;
-            min-height: 100%; padding: 15px; overscroll-behavior: none;
+            min-height: 100%; padding: 15px; overscroll-behavior: none; position: relative;
         }
+
+        /* 右上のメニューボタン */
+        .top-menu-btn {
+            position: absolute; top: 15px; right: 15px;
+            background: linear-gradient(to bottom, #8b4513, #5e3522);
+            color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px;
+            padding: 8px 12px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10;
+            font-size: 1rem;
+        }
+        .top-menu-btn:active { transform: scale(0.95); }
 
         /* モーダル風のメインコンテナ */
         .container {
@@ -48,14 +59,20 @@
             display: flex; flex-direction: column; overflow-y: auto;
         }
 
-        h1 {
+        h1, h2 {
             color: #8b4513; margin-top: 0; text-shadow: 1px 1px 0px #fff;
-            text-align: center; font-size: 2rem; margin-bottom: 5px;
+            text-align: center;
         }
+        h1 { font-size: 2rem; margin-bottom: 5px; }
 
         .subtitle {
             text-align: center; color: #5e3522; font-weight: bold;
-            font-size: 1.1rem; margin-bottom: 25px;
+            font-size: 1.1rem; margin-bottom: 5px;
+        }
+
+        .guide-text {
+            font-size: 0.85rem; color: #666; text-align: center; font-weight: bold;
+            margin-bottom: 25px; line-height: 1.4;
         }
 
         /* ゲームリストのコンテナ */
@@ -112,16 +129,34 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #333;
         }
         .btn-back:active { transform: scale(0.95); }
+
+        /* オーバーレイとモーダル（メニュー用） */
+        .overlay {
+            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            justify-content: center; align-items: center; overscroll-behavior: none;
+        }
+        .modal-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 15px 0; }
+        .sub-btn {
+            width: 100%; padding: 12px; font-size: 1.1rem; background: #432517;
+            color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px;
+            cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .sub-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div id="bg-image"></div>
 
+<!-- 右上のメニューボタン -->
+<button class="top-menu-btn" onclick="openModal('menuModal')">≡ メニュー</button>
+
 <div class="screen-wrapper">
     <div class="container">
         <h1>しおやミニゲーム<br><span style="font-size: 0.6em;">総合ロビー</span></h1>
         <div class="subtitle">遊ぶゲームを選んでください！</div>
+        <div class="guide-text">各ゲームのルールはメニューからご確認ください。<br>（ゲーム開始後も確認できます。）</div>
         
         <div class="game-list">
             
@@ -148,6 +183,40 @@
         <button class="btn-back" onclick="location.href='index.html'">タイトル画面へ戻る</button>
     </div>
 </div>
+
+<!-- ▼ メニューポップアップ -->
+<div id="menuModal" class="overlay" style="display: none;">
+    <div class="container" style="max-width: 320px; padding: 20px;">
+        <h2>メニュー</h2>
+        <div class="modal-grid">
+            <button class="sub-btn" style="background: #28a745;" onclick="switchModal('menuModal', 'rulesFavoriteGuessrModal')">📖 好物当てルール</button>
+            <!-- 今後ゲームが増えたらここにボタンを追加します -->
+        </div>
+        <button class="sub-btn" style="background: #666;" onclick="closeModal('menuModal')">閉じる</button>
+    </div>
+</div>
+
+<!-- ▼ 好物当てルール確認ポップアップ -->
+<div id="rulesFavoriteGuessrModal" class="overlay" style="display: none;">
+    <div class="container" style="max-width: 400px; padding: 20px;">
+        <h2>好物当てルール</h2>
+        <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: #333; font-weight: bold; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 8px; border: 2px dashed #8b4513; margin-bottom: 15px;">
+            <p>1. お互いに「好きなもの」と「そうでもないもの」をリストに入力します。</p>
+            <p>2. 相手が入力したものがシャッフルされて画面に並びます。</p>
+            <p>3. 交互にパネルを選び、相手の「好きなもの」を当ててポイントを稼ぎます（上位ほど高得点）。</p>
+            <p>4. 「そうでもないもの」を選ぶとライフが減り、0になると敗北です。</p>
+            <p style="color: #d32f2f;">※ 先手が有利にならないよう、後手には逆転の「ラストチャンス」が与えられます！</p>
+        </div>
+        <button class="sub-btn" style="background: #666;" onclick="switchModal('rulesFavoriteGuessrModal', 'menuModal')">戻る</button>
+    </div>
+</div>
+
+<script>
+    // モーダル操作関数
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function switchModal(closeId, openId) { closeModal(closeId); openModal(openId); }
+</script>
 
 </body>
 </html>
