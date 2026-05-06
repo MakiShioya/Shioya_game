@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>しおやゲーム（仮） - リザルト</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 90vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        .result-title { font-size: 2em; font-weight: bold; margin-bottom: 10px; }
+        .reason-box { background: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9em; line-height: 1.5; }
+        .stats-box { background: #333; color: white; padding: 15px; border-radius: 10px; margin-bottom: 30px; text-align: left; }
+        .stats-box p { margin: 5px 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
+        .win { color: #ff4d4d; }
+        .lose { color: #4d94ff; }
+        .draw { color: #28a745; }
+        .perfect { color: #e83e8c; font-size: 1.2em; border: 2px solid #e83e8c; padding: 5px; display: inline-block; border-radius: 5px; margin-bottom: 10px; }
+        button { padding: 15px; background: #333; color: white; border: none; border-radius: 5px; width: 100%; font-size: 1.1em; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="perfect-badge" class="perfect" style="display: none;">✨ 尊い絆（パーフェクト） ✨</div>
+    <div id="result-text" class="result-title">判定中...</div>
+    <div id="reason-text" class="reason-box"></div>
+    
+    <div class="stats-box">
+        <p id="p1-display"></p>
+        <p id="p2-display"></p>
+    </div>
+
+    <button onclick="location.href='index.html'">エントランスに戻る</button>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const winner = urlParams.get('winner');
+    const reason = urlParams.get('reason');
+    const p1 = urlParams.get('p1');
+    const p2 = urlParams.get('p2');
+    const myId = urlParams.get('myId');
+
+    const resultEl = document.getElementById('result-text');
+    const reasonEl = document.getElementById('reason-text');
+    const p1El = document.getElementById('p1-display');
+    const p2El = document.getElementById('p2-display');
+    const perfectBadge = document.getElementById('perfect-badge');
+
+    // データの表示
+    reasonEl.innerText = reason;
+    p1El.innerText = p1;
+    p2El.innerText = p2;
+
+    // 勝敗判定
+    if (winner === 'perfect') {
+        resultEl.innerText = "❤️ 完全勝利";
+        resultEl.className = "result-title perfect";
+        perfectBadge.style.display = "inline-block";
+    } else if (winner === 'draw') {
+        resultEl.innerText = "🤝 引き分け";
+        resultEl.className = "result-title draw";
+    } else if (winner === myId) {
+        resultEl.innerText = "🏆 YOU WIN!";
+        resultEl.className = "result-title win";
+    } else {
+        resultEl.innerText = "💀 YOU LOSE";
+        resultEl.className = "result-title lose";
+    }
+</script>
+
+</body>
+</html>
