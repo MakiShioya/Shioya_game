@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>しおやミニゲーム</title>
     
-    <!-- プリロード（パスを image/ と font/ に修正） -->
     <link rel="preload" href="image/shioya_soft_logo.png" as="image" fetchpriority="high">
-    <link rel="preload" href="image/shogi_title.PNG" as="image">
+    <link rel="preload" href="image/shogi_title.PNG" as="image" media="(orientation: portrait)">
+    <link rel="preload" href="image/shogi_title_yoko.PNG" as="image" media="(orientation: landscape)">
     <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
     
     <link rel="icon" href="image/komiya_icon.png"> 
@@ -27,6 +27,10 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             font-family: 'SetoFont', sans-serif; overflow: hidden;
             -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
+
+        @media screen and (orientation: landscape) {
+            body { background-image: url('image/shogi_title_yoko.PNG'); }
         }
 
         /* ▼▼▼ スプラッシュスクリーン ▼▼▼ */
@@ -49,19 +53,13 @@
         .spacer { margin-top: 2.5em; }
         rt { font-size: 0.5em; letter-spacing: normal; }
 
-        /* ▼▼▼ メインタイトル ▼▼▼ */
-        .title-logo {
-            font-size: 4.5rem; color: #FFB347;
-            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.8), -2px -2px 5px rgba(0, 0, 0, 0.8);
-            font-weight: bold; margin-bottom: 60vh; text-align: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
-            display: none;
-        }
-
+        /* ▼▼▼ メインUI（ロゴテキストを削除したので位置を調整） ▼▼▼ */
         .tap-start {
             font-size: 1.5rem; color: #ECDBBF; cursor: pointer;
             text-shadow: 0 0 5px black; background: rgba(0,0,0,0.3);
-            padding: 10px 40px; border-radius: 30px; margin-top: 150px;
+            padding: 10px 40px; border-radius: 30px;
+            /* ロゴがないので、画面下寄りに配置 */
+            margin-top: 40vh; 
             opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
         }
 
@@ -99,8 +97,7 @@
     </div>
   </div>
   
-  <!-- タイトル画面 -->
-  <div id="main-title" class="title-logo">しおやミニゲーム</div>
+  <!-- タイトル画面（テキストロゴを削除） -->
   <div id="main-start" class="tap-start" onclick="goToHome()">TAP TO START</div>
   
   <div class="copyright">
@@ -109,14 +106,12 @@
   </div>
 
   <script>
-    // ▼▼▼ オープニング演出ロジック ▼▼▼
     document.addEventListener("DOMContentLoaded", async () => {
         const splashScreen = document.getElementById('splash-screen');
         const logo = document.getElementById('splash-logo');
         const warning = document.getElementById('splash-warning');
         const logoImg = document.getElementById('splash-logo-img');
         
-        const mainTitle = document.getElementById('main-title');
         const mainStart = document.getElementById('main-start');
         const copyright = document.querySelector('.copyright');
 
@@ -134,28 +129,23 @@
                 let tapped = false;
                 let startTime = Date.now();
                 let maxTimer;
-
                 const finish = () => {
                     splashScreen.removeEventListener('click', onTap);
                     splashScreen.removeEventListener('touchstart', onTap);
                     clearTimeout(maxTimer);
                     resolve();
                 };
-
                 const onTap = () => {
                     tapped = true;
                     if (Date.now() - startTime >= minMs) finish();
                 };
-
                 splashScreen.addEventListener('click', onTap);
                 splashScreen.addEventListener('touchstart', onTap, { passive: true });
-
                 maxTimer = setTimeout(finish, maxMs);
                 setTimeout(() => { if (tapped) finish(); }, minMs);
             });
         };
 
-        // 演出の進行
         await waitForImageLoad(logoImg);
         await wait(200);
 
@@ -172,9 +162,8 @@
         await wait(500);
 
         splashScreen.style.opacity = '0';
-        mainTitle.style.display = 'block';
         
-        mainTitle.classList.add('fade-in-done');
+        // メイン画面のUI（TAP TO STARTとコピーライト）を表示
         mainStart.classList.add('fade-in-done');
         copyright.classList.add('fade-in-done');
 
@@ -182,7 +171,6 @@
         splashScreen.style.display = 'none';
     });
 
-    // 総合ロビー（home.html）へ移動
     function goToHome() {
         const startBtn = document.getElementById('main-start');
         if (startBtn) startBtn.style.pointerEvents = 'none';
@@ -191,13 +179,13 @@
   </script>
 
   <script>
-    // 横画面固定ロジック
     function autoRotateTitle() {
       const w = window.innerWidth;
       const h = window.innerHeight;
       const isPortrait = h > w;
 
       if (isPortrait) {
+        document.body.style.backgroundImage = "url('image/shogi_title.PNG')";
         document.body.style.position = "fixed";
         document.body.style.top = "50%";
         document.body.style.left = "50%";
@@ -207,6 +195,7 @@
         document.body.style.height = w + "px";
         document.body.style.overflow = "hidden";
       } else {
+        document.body.style.backgroundImage = "url('image/shogi_title_yoko.PNG')";
         document.body.style.position = "";
         document.body.style.top = "";
         document.body.style.left = "";
@@ -220,7 +209,6 @@
     window.addEventListener('resize', autoRotateTitle);
     setTimeout(autoRotateTitle, 100);
 
-    // 右クリック・画像ドラッグの禁止
     document.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
     document.addEventListener('dragstart', e => e.preventDefault(), { passive: false });
   </script>
