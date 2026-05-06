@@ -284,24 +284,26 @@
         }
 
         if (data.isGameOver) {
+            let resultMsg = data.endReason + "\n\n";
+            if (data.winner === 'perfect') resultMsg += "🎉 引き分け (パーフェクト！)";
+            else if (data.winner === 'draw') resultMsg += "🤝 引き分け";
+            else if (data.winner === socket.id) resultMsg += "🏆 あなたの勝ちです！";
+            else resultMsg += "💀 あなたの負けです...";
+            
             document.getElementById('turn-display').innerText = "ゲーム終了！";
             document.getElementById('turn-display').style.background = "#ffd700";
             
-            // ★リザルトページに渡すデータをまとめる
-            const p1Stats = document.getElementById('p1-stats').innerText;
-            const p2Stats = document.getElementById('p2-stats').innerText;
-            
-            // 少しログを読ませる時間を置いてから移動
+            // ★修正: データをSessionStorageに保存してリザルト画面へ移動
             setTimeout(() => {
-                const params = new URLSearchParams({
+                const resultPayload = {
                     winner: data.winner,
                     reason: data.endReason,
-                    p1: p1Stats,
-                    p2: p2Stats,
-                    myId: socket.id // 自分が勝ったか判定用
-                });
-                window.location.href = `result.html?${params.toString()}`;
-            }, 2000); // 2秒後にリザルト画面へ
+                    myId: socket.id,
+                    finalData: data.finalData
+                };
+                sessionStorage.setItem('shioya_game_result', JSON.stringify(resultPayload));
+                window.location.href = `result.html`;
+            }, 2000);
         }
     });
 
