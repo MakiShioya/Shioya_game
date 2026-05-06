@@ -3,137 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>しおやゲーム（仮） - 入力画面</title>
+    <title>しおやゲーム（仮）</title>
     <style>
         body { font-family: sans-serif; padding: 20px; background-color: #f0f4f8; }
         .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .input-group { margin-bottom: 15px; }
-        input { width: 80%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .input-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+        input[type="text"], select { width: 90%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; }
         .like { border-left: 5px solid #ff4d4d; }
         .dislike { border-left: 5px solid #4d94ff; }
-        button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px; }
-        button:disabled { background: #ccc; }
+        button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px; width: 100%; font-size: 1.1em; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         h2 { font-size: 1.2em; color: #333; }
+        .status-box { background: #e6f2ff; padding: 10px; text-align: center; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container" id="setup-screen">
-    <h1>しおやゲーム（仮）</h1>
-    <p>お互いのことを知るためのゲームです。</p>
+<!-- ① ロビー画面 -->
+<div class="container" id="lobby-screen">
+    <h1>しおやゲーム（仮） - ロビー</h1>
+    <div class="status-box" id="lobby-status">サーバーに接続中...</div>
     
     <div class="input-group">
-        <h2>❤️ 好きなもの (5〜10個)</h2>
-        <div id="likes-container">
-            <!-- ここにJavaScriptで入力欄を生成します -->
-        </div>
+        <label>あなたのお名前:<br>
+            <input type="text" id="player-name" placeholder="名前を入力してください">
+        </label>
     </div>
 
     <div class="input-group">
-        <h2>🤔 そうでもないもの (5〜10個)</h2>
-        <div id="dislikes-container">
-            <!-- ここにJavaScriptで入力欄を生成します -->
-        </div>
+        <h3>ルール設定（相手と同期されます）</h3>
+        <label>❤️ 好きなものの個数: 
+            <select id="likes-count">
+                <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+            </select>
+        </label><br><br>
+        <label>🤔 そうでもないものの個数: 
+            <select id="dislikes-count">
+                <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+            </select>
+        </label>
     </div>
 
-    <button id="submit-btn" disabled>準備完了！</button>
+    <button id="lobby-ready-btn" disabled>この設定で開始！</button>
 </div>
 
-<!-- Socket.IOの読み込み（Renderのサーバーから直接持ってくる） -->
+<!-- ② 入力画面 -->
+<div class="container" id="setup-screen" style="display: none;">
+    <h1>リスト入力</h1>
+    <div class="status-box" id="setup-status">相手の入力を待っています...</div>
+    
+    <div class="input-group">
+        <h2>❤️ 好きなもの</h2>
+        <div id="likes-container"></div>
+    </div>
+    <div class="input-group">
+        <h2>🤔 そうでもないもの</h2>
+        <div id="dislikes-container"></div>
+    </div>
+    <button id="submit-btn" disabled>入力を完了する</button>
+</div>
+
+<!-- ③ ゲーム画面 -->
+<div class="container" id="game-screen" style="display: none;">
+    <h1>対戦スタート！</h1>
+    <div id="game-content"></div>
+</div>
+
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
     const socket = io("https://shogi.shioya-soft.com/match-game");
-
-    // URLから部屋のIDを取得（なければ 'default-room' に入る）
     const urlParams = new URLSearchParams(window.location.search);
     const roomId = urlParams.get('room') || 'default-room';
 
-    // 接続確認と入室
+    let currentRules = { likesCount: 5, dislikesCount: 5 };
+    let amILobbyReady = false;
+    let amIInputReady = false;
+
     socket.on('connect', () => {
-        console.log("司令塔に繋がりました！ ID:", socket.id);
         socket.emit('join room', roomId);
     });
 
-    // 入力欄を自動生成する関数
-    function createInputs(containerId, className, placeholderText) {
+    // --- ロビー: リアルタイム同期の送信 ---
+    const sendSettings = () => {
+        if(amILobbyReady) return; // 自分が準備完了後は送らない
+        socket.emit('update rule', {
+            playerName: document.getElementById('player-name').value,
+            rules: {
+                likesCount: parseInt(document.getElementById('likes-count').value),
+                dislikesCount: parseInt(document.getElementById('dislikes-count').value)
+            }
+        });
+        checkLobbyValidity();
+    };
+
+    document.getElementById('player-name').addEventListener('input', sendSettings);
+    document.getElementById('likes-count').addEventListener('change', sendSettings);
+    document.getElementById('dislikes-count').addEventListener('change', sendSettings);
+
+    function checkLobbyValidity() {
+        const name = document.getElementById('player-name').value.trim();
+        document.getElementById('lobby-ready-btn').disabled = (name === "");
+    }
+
+    // --- サーバーから状態の更新を受け取る（ロビー＆入力状況） ---
+    socket.on('room updated', (info) => {
+        const playerIds = Object.keys(info.players);
+        const myInfo = info.players[socket.id];
+        const opponentId = playerIds.find(id => id !== socket.id);
+        const oppInfo = opponentId ? info.players[opponentId] : null;
+
+        // ロビー状態での同期とステータス表示
+        if (info.status === 'lobby') {
+            if (!amILobbyReady) {
+                // 自分がまだ操作できるなら、サーバーからの値（相手が変えた値）を反映
+                document.getElementById('likes-count').value = info.rules.likesCount;
+                document.getElementById('dislikes-count').value = info.rules.dislikesCount;
+            }
+
+            let statusText = "入室者: 1人（相手を待っています）";
+            if (oppInfo) {
+                if (amILobbyReady && oppInfo.lobbyReady) statusText = "両者準備完了！間もなく移動します...";
+                else if (amILobbyReady && !oppInfo.lobbyReady) statusText = `あなたは準備OK。${oppInfo.name}の準備を待っています...`;
+                else if (!amILobbyReady && oppInfo.lobbyReady) statusText = `${oppInfo.name}が準備OK！あなたの準備を待っています。`;
+                else statusText = `相手(${oppInfo.name})が入室しました。設定を決めてください。`;
+            }
+            document.getElementById('lobby-status').innerText = statusText;
+        }
+
+        // 入力画面でのステータス表示（相手が終わったかどうかの確認）
+        if (info.status === 'inputting') {
+            let statusText = "";
+            if (oppInfo) {
+                if (amIInputReady && !oppInfo.inputReady) statusText = `あなたは入力完了！ ${oppInfo.name} の入力を待っています...`;
+                else if (!amIInputReady && oppInfo.inputReady) statusText = `${oppInfo.name} は入力を終えました！ あなたの完了を待っています。`;
+                else if (!amIInputReady && !oppInfo.inputReady) statusText = `お互いに入力中です...`;
+            }
+            document.getElementById('setup-status').innerText = statusText;
+        }
+    });
+
+    // --- ロビー: 「開始」ボタン ---
+    document.getElementById('lobby-ready-btn').addEventListener('click', () => {
+        amILobbyReady = true;
+        document.getElementById('player-name').disabled = true;
+        document.getElementById('likes-count').disabled = true;
+        document.getElementById('dislikes-count').disabled = true;
+        document.getElementById('lobby-ready-btn').disabled = true;
+        
+        socket.emit('lobby ready', document.getElementById('player-name').value);
+    });
+
+    // --- 入力画面へ移行 ---
+    socket.on('start inputting', (rules) => {
+        currentRules = rules;
+        document.getElementById('lobby-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'block';
+
+        createInputs('likes-container', 'like', '好きなもの', currentRules.likesCount);
+        createInputs('dislikes-container', 'dislike', 'そうでもないもの', currentRules.dislikesCount);
+    });
+
+    function createInputs(containerId, className, placeholderText, count) {
         const container = document.getElementById(containerId);
-        for (let i = 1; i <= 10; i++) {
+        container.innerHTML = ""; // 初期化
+        for (let i = 1; i <= count; i++) {
             const input = document.createElement('input');
             input.type = 'text';
             input.maxLength = 10;
             input.className = className;
             input.placeholder = `${placeholderText} ${i}`;
-            input.addEventListener('input', checkValidity);
+            input.addEventListener('input', checkInputValidity);
             container.appendChild(input);
         }
     }
 
-    function checkValidity() {
+    function checkInputValidity() {
         const likes = Array.from(document.querySelectorAll('.like')).filter(i => i.value.trim() !== "");
         const dislikes = Array.from(document.querySelectorAll('.dislike')).filter(i => i.value.trim() !== "");
-        document.getElementById('submit-btn').disabled = !(likes.length >= 5 && dislikes.length >= 5);
+        document.getElementById('submit-btn').disabled = !(likes.length === currentRules.likesCount && dislikes.length === currentRules.dislikesCount);
     }
 
-    createInputs('likes-container', 'like', '好きなもの');
-    createInputs('dislikes-container', 'dislike', 'そうでもないもの');
-
-    // 送信ボタンの処理
+    // --- リスト送信 ---
     document.getElementById('submit-btn').addEventListener('click', () => {
-        const likes = Array.from(document.querySelectorAll('.like')).map(i => i.value.trim()).filter(v => v !== "");
-        const dislikes = Array.from(document.querySelectorAll('.dislike')).map(i => i.value.trim()).filter(v => v !== "");
+        const likes = Array.from(document.querySelectorAll('.like')).map(i => i.value.trim());
+        const dislikes = Array.from(document.querySelectorAll('.dislike')).map(i => i.value.trim());
         
-        const myData = { likes: likes, dislikes: dislikes };
+        amIInputReady = true;
+        document.getElementById('submit-btn').disabled = true;
+        document.querySelectorAll('input').forEach(i => i.disabled = true);
         
-        // サーバーへ送信
-        socket.emit('submit lists', myData);
+        socket.emit('submit lists', { likes: likes, dislikes: dislikes });
+    });
 
-        // 画面を待機状態に切り替える
-        document.getElementById('setup-screen').innerHTML = `
-            <h2>相手の入力を待っています...</h2>
-            <p>Room ID: ${roomId}</p>
+    // --- ゲーム開始 ---
+    socket.on('game start', (data) => {
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+
+        let html = `
+            <h2>${data.opponentName}の好きなものはどれ？</h2>
+            <p id="turn-display" class="status-box">${data.isMyTurn ? "★ あなたの番です" : "相手の番です..."}</p>
+            <div id="quiz-board" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
         `;
+
+        data.quizList.forEach((word, index) => {
+            html += `<button class="quiz-item" onclick="makeGuess('${word}', ${index})" id="btn-${index}">${word}</button>`;
+        });
+
+        html += `</div>`;
+        document.getElementById('game-content').innerHTML = html;
+        toggleBoard(data.isMyTurn);
     });
 
-    // サーバーから「2人揃った」という合図を受け取る
-    // サーバーから「ゲーム開始」を受け取る
-socket.on('game start', (data) => {
-    const container = document.getElementById('setup-screen');
-    
-    // クイズ画面のHTMLを構築
-    let html = `
-        <h2>${data.opponentName}の好きなものはどれ？</h2>
-        <p id="turn-display">${data.isMyTurn ? "★ あなたの番です" : "相手の番です..."}</p>
-        <div id="quiz-board" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-    `;
+    function makeGuess(word, index) {
+        socket.emit('make guess', { word: word, index: index });
+        toggleBoard(false); // 送信後はボタンをロック
+    }
 
-    data.quizList.forEach((word, index) => {
-        html += `<button class="quiz-item" onclick="makeGuess('${word}', ${index})" id="btn-${index}">${word}</button>`;
-    });
-
-    html += `</div>`;
-    container.innerHTML = html;
-
-    // 自分のターンじゃない時はボタンを押せなくする
-    toggleBoard(data.isMyTurn);
-});
-
-// 予想を送信する関数
-function makeGuess(word, index) {
-    console.log("予想を送信:", word);
-    socket.emit('make guess', { word: word, index: index });
-    // 連打防止
-    toggleBoard(false);
-}
-
-// ボードの有効/無効切り替え
-function toggleBoard(isMyTurn) {
-    const buttons = document.querySelectorAll('.quiz-item');
-    const display = document.getElementById('turn-display');
-    buttons.forEach(btn => {
-        btn.disabled = !isMyTurn;
-    });
-    display.innerText = isMyTurn ? "★ あなたの番です" : "相手の番です...";
-}
+    function toggleBoard(isMyTurn) {
+        const buttons = document.querySelectorAll('.quiz-item');
+        const display = document.getElementById('turn-display');
+        buttons.forEach(btn => btn.disabled = !isMyTurn);
+        display.innerText = isMyTurn ? "★ あなたの番です" : "相手の番です...";
+        display.style.background = isMyTurn ? "#ffcccc" : "#e6f2ff";
+    }
 </script>
 </body>
 </html>
