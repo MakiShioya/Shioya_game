@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>しおやミニゲーム</title>
+    
+    <!-- プリロード（パスを image/ と font/ に修正） -->
+    <link rel="preload" href="image/shioya_soft_logo.png" as="image" fetchpriority="high">
+    <link rel="preload" href="image/shogi_title.PNG" as="image">
+    <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
+    
+    <link rel="icon" href="image/komiya_icon.png"> 
+    <link rel="apple-touch-icon" href="image/komiya_icon.png">
+
+    <style>
+        @font-face {
+            font-family: 'SetoFont';
+            src: url('font/setofont.ttf') format('truetype');
+            font-display: block;
+        }
+
+        body {
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            background-image: url('image/shogi_title.PNG');
+            background-size: cover; background-position: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-family: 'SetoFont', sans-serif; overflow: hidden;
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
+
+        /* ▼▼▼ スプラッシュスクリーン ▼▼▼ */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #432517; z-index: 99999;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: auto; transition: opacity 0.5s ease; 
+        }
+
+        .splash-content {
+            color: #ECDBBF; font-family: "MS Mincho", serif; text-align: center;
+            opacity: 0; transition: opacity 0.5s ease; position: absolute; width: 100%;
+        }
+
+        #splash-logo img { width: 60vw; max-width: 400px; height: auto; }
+
+        #splash-warning { width: 90%; margin: 0 auto; }
+        .warning-text { font-size: 1.1rem; color: #ECDBBF; display: block; line-height: 2.2; }
+        .spacer { margin-top: 2.5em; }
+        rt { font-size: 0.5em; letter-spacing: normal; }
+
+        /* ▼▼▼ メインタイトル ▼▼▼ */
+        .title-logo {
+            font-size: 4.5rem; color: #FFB347;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.8), -2px -2px 5px rgba(0, 0, 0, 0.8);
+            font-weight: bold; margin-bottom: 60vh; text-align: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+            display: none;
+        }
+
+        .tap-start {
+            font-size: 1.5rem; color: #ECDBBF; cursor: pointer;
+            text-shadow: 0 0 5px black; background: rgba(0,0,0,0.3);
+            padding: 10px 40px; border-radius: 30px; margin-top: 150px;
+            opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+        }
+
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .fade-in-done { opacity: 1 !important; pointer-events: auto !important; }
+        .tap-start.fade-in-done { animation: blink 1.5s infinite; }
+
+        .copyright {
+            position: absolute; bottom: 15px; width: 100%; text-align: center;
+            color: rgba(236, 219, 191, 0.8); font-size: 0.8rem; line-height: 1.5;
+            pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.8s ease;
+        }
+    </style>
+</head>
+<body>
+
+  <!-- スプラッシュ画面 -->
+  <div id="splash-screen">
+    <div id="splash-logo" class="splash-content">
+        <img src="image/shioya_soft_logo.png" alt="しおやソフト" id="splash-logo-img">
+    </div>
+    
+    <div id="splash-warning" class="splash-content">
+      <div class="warning-text">
+          この<ruby>物語<rt>ものがたり</rt></ruby>はフィクションです。<br>
+          <ruby>実在<rt>じつざい</rt></ruby>の<ruby>人物<rt>じんぶつ</rt></ruby>・<ruby>団体<rt>だんたい</rt></ruby>・<ruby>事件<rt>じけん</rt></ruby>などとは<ruby>一切関係<rt>いっさいかんけい</rt></ruby>ありません。
+      </div>
+      
+      <div class="warning-text spacer">
+          <ruby>利用規約<rt>りようきやく</rt></ruby>に<ruby>同意<rt>どうい</rt></ruby>し、ミニゲームをご<ruby>利用<rt>りよう</rt></ruby>ください。<br>
+          <ruby>歩<rt>ある</rt></ruby>きスマホは、
+          <ruby>居玉<rt>いぎょく</rt></ruby>より<ruby>危険<rt>きけん</rt></ruby>です。
+      </div>
+    </div>
+  </div>
+  
+  <!-- タイトル画面 -->
+  <div id="main-title" class="title-logo">しおやミニゲーム</div>
+  <div id="main-start" class="tap-start" onclick="goToHome()">TAP TO START</div>
+  
+  <div class="copyright">
+    ver 1.0.0<br>
+    © 2026 Shioya Soft.
+  </div>
+
+  <script>
+    // ▼▼▼ オープニング演出ロジック ▼▼▼
+    document.addEventListener("DOMContentLoaded", async () => {
+        const splashScreen = document.getElementById('splash-screen');
+        const logo = document.getElementById('splash-logo');
+        const warning = document.getElementById('splash-warning');
+        const logoImg = document.getElementById('splash-logo-img');
+        
+        const mainTitle = document.getElementById('main-title');
+        const mainStart = document.getElementById('main-start');
+        const copyright = document.querySelector('.copyright');
+
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        const waitForImageLoad = (img) => {
+            return new Promise((resolve) => {
+                if (img.complete) { resolve(); } 
+                else { img.onload = () => resolve(); img.onerror = () => resolve(); }
+            });
+        };
+
+        const skippableWait = (minMs, maxMs) => {
+            return new Promise(resolve => {
+                let tapped = false;
+                let startTime = Date.now();
+                let maxTimer;
+
+                const finish = () => {
+                    splashScreen.removeEventListener('click', onTap);
+                    splashScreen.removeEventListener('touchstart', onTap);
+                    clearTimeout(maxTimer);
+                    resolve();
+                };
+
+                const onTap = () => {
+                    tapped = true;
+                    if (Date.now() - startTime >= minMs) finish();
+                };
+
+                splashScreen.addEventListener('click', onTap);
+                splashScreen.addEventListener('touchstart', onTap, { passive: true });
+
+                maxTimer = setTimeout(finish, maxMs);
+                setTimeout(() => { if (tapped) finish(); }, minMs);
+            });
+        };
+
+        // 演出の進行
+        await waitForImageLoad(logoImg);
+        await wait(200);
+
+        logo.style.opacity = '1';
+        await skippableWait(1000, 4000);
+        logo.style.opacity = '0';
+
+        await wait(500);
+
+        warning.style.opacity = '1';
+        await skippableWait(1000, 4000);
+        warning.style.opacity = '0';
+
+        await wait(500);
+
+        splashScreen.style.opacity = '0';
+        mainTitle.style.display = 'block';
+        
+        mainTitle.classList.add('fade-in-done');
+        mainStart.classList.add('fade-in-done');
+        copyright.classList.add('fade-in-done');
+
+        await wait(500);
+        splashScreen.style.display = 'none';
+    });
+
+    // 総合ロビー（home.html）へ移動
+    function goToHome() {
+        const startBtn = document.getElementById('main-start');
+        if (startBtn) startBtn.style.pointerEvents = 'none';
+        window.location.href = "home.html";
+    }
+  </script>
+
+  <script>
+    // 横画面固定ロジック
+    function autoRotateTitle() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isPortrait = h > w;
+
+      if (isPortrait) {
+        document.body.style.position = "fixed";
+        document.body.style.top = "50%";
+        document.body.style.left = "50%";
+        document.body.style.transformOrigin = "center center";
+        document.body.style.transform = "translate(-50%, -50%) rotate(90deg)";
+        document.body.style.width = h + "px";
+        document.body.style.height = w + "px";
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.transform = "";
+        document.body.style.width = "100vw";
+        document.body.style.height = "100vh";
+      }
+    }
+
+    window.addEventListener('load', autoRotateTitle);
+    window.addEventListener('resize', autoRotateTitle);
+    setTimeout(autoRotateTitle, 100);
+
+    // 右クリック・画像ドラッグの禁止
+    document.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
+    document.addEventListener('dragstart', e => e.preventDefault(), { passive: false });
+  </script>
+
+</body>
+</html>
