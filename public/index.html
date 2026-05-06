@@ -42,7 +42,7 @@
 <!-- Socket.IOの読み込み（Renderのサーバーから直接持ってくる） -->
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-    const socket = io("https://shioya-shogi.onrender.com/match-game");
+    const socket = io("https://shogi.shioya-soft.com/match-game");
 
     // URLから部屋のIDを取得（なければ 'default-room' に入る）
     const urlParams = new URLSearchParams(window.location.search);
