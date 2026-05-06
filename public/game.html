@@ -2,91 +2,201 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>しおやゲーム（仮）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover">
+    <title>しおやゲーム（仮） - 対局室</title>
+    
+    <!-- フォントとアイコンの読み込み -->
+    <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="icon" href="script/image/komiya_icon.png"> 
+    
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f0f4f8; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .input-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
-        .flex-input { display: flex; align-items: center; margin-bottom: 5px; }
-        .flex-input span { width: 50px; font-weight: bold; }
-        input[type="text"], select { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .like { border-left: 5px solid #ff4d4d; }
-        .dislike { border-left: 5px solid #4d94ff; }
-        button { padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 5px; width: 100%; font-size: 1.1em; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        h2 { font-size: 1.2em; color: #333; }
-        .status-box { background: #e6f2ff; padding: 10px; text-align: center; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
-        .master-badge { font-size: 1.1em; padding: 10px; text-align: center; border-radius: 5px; margin-bottom: 15px; font-weight: bold; }
-        .btn-transfer { background: #ff9900; margin-bottom: 10px; font-size: 0.9em; }
-        #stats-board { display: flex; justify-content: space-between; background: #333; color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; }
-        #game-log { height: 100px; overflow-y: auto; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; }
-        #game-log p { margin: 5px 0; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+        @font-face {
+            font-family: 'SetoFont';
+            src: url('font/setofont.ttf') format('truetype');
+            font-display: block;
+        }
+
+        * {
+            font-family: 'SetoFont', "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #2c3e50;
+            -webkit-user-select: none; user-select: none;
+        }
+
+        /* 背景画像の設定 */
+        #bg-image {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1;
+            background-image: url('script/image/mujin_haikei.PNG');
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+        }
+
+        /* 画面中央に配置するためのラッパー */
+        .screen-wrapper {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100%; padding: 15px; overscroll-behavior: none;
+        }
+
+        /* モーダル風のメインコンテナ */
+        .container {
+            background: #fff8dc; padding: 20px; border-radius: 10px;
+            border: 4px solid #8b4513; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 100%; max-width: 550px; max-height: 95vh;
+            display: flex; flex-direction: column; overflow-y: auto;
+        }
+
+        h1, h2, h3 {
+            color: #8b4513; margin-top: 0; text-shadow: 1px 1px 0px #fff; text-align: center;
+        }
+
+        /* ステータス表示やバッジ */
+        .status-box {
+            background: rgba(255, 255, 255, 0.8); color: #333; border: 2px solid #8b4513;
+            border-radius: 8px; padding: 10px; font-weight: bold; margin-bottom: 15px; text-align: center;
+        }
+        .master-badge {
+            background: #fff3b0; border: 2px solid #8b4513; color: #8b4513;
+            border-radius: 8px; padding: 10px; font-weight: bold; margin-bottom: 15px; text-align: center;
+        }
+
+        /* 入力エリアのグループ */
+        .input-group {
+            background: rgba(255,255,255,0.6); border-radius: 8px; padding: 15px;
+            margin-bottom: 15px; border: 2px dashed #d2b48c;
+        }
+        .input-group label { font-weight: bold; color: #8b4513; font-size: 1.1rem; }
+        
+        .flex-input { display: flex; align-items: center; margin-bottom: 8px; gap: 5px; }
+        .flex-input span { font-weight: bold; color: #8b4513; white-space: nowrap; font-size: 1.1rem; width: 45px; text-align: right; }
+
+        input[type="text"], select {
+            width: 100%; padding: 10px; border: 2px solid #8b4513; border-radius: 6px;
+            font-size: 1.1rem; outline: none; background: #fff;
+        }
+        input[type="text"]:focus { background: #ECDBBF; }
+        select { flex-grow: 1; }
+
+        /* メインボタン（準備完了、送信など） */
+        .btn-primary {
+            padding: 15px; background: linear-gradient(to bottom, #FF9800, #F57C00);
+            color: #fff; border: 3px solid #ECDBBF; border-radius: 10px;
+            width: 100%; font-size: 1.3rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #432517; transition: 0.2s;
+        }
+        .btn-primary:disabled { background: #ccc; border-color: #999; color: #666; text-shadow: none; cursor: not-allowed; box-shadow: none; }
+        .btn-primary:not(:disabled):active { transform: scale(0.95); }
+
+        /* 譲渡ボタン */
+        .btn-transfer {
+            background: linear-gradient(to bottom, #4facfe, #00f2fe); color: #432517;
+            text-shadow: 1px 1px 0px #fff; border: 2px solid #ECDBBF; padding: 10px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .btn-transfer:active { transform: scale(0.95); }
+
+        /* ゲーム画面専用スタイル */
+        #stats-board {
+            display: flex; justify-content: space-between; background: #432517; color: #ECDBBF;
+            padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: bold;
+            border: 2px solid #8b4513; font-size: 1.1rem;
+        }
+        #game-log {
+            height: 120px; overflow-y: auto; background: rgba(255,255,255,0.8);
+            padding: 10px; border: 2px solid #8b4513; border-radius: 8px;
+            margin-bottom: 15px; font-size: 1rem; color: #333;
+        }
+        #game-log p { margin: 5px 0; border-bottom: 1px dashed #d2b48c; padding-bottom: 5px; }
+
+        #quiz-board {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 5px;
+        }
+        .quiz-item {
+            background: linear-gradient(to bottom, #8b4513, #5e3522); color: #ECDBBF;
+            border: 3px solid #ECDBBF; border-radius: 10px; padding: 15px 5px;
+            font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #000;
+        }
+        .quiz-item:not([disabled]):active { transform: scale(0.95); }
+        .quiz-item[disabled] { cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-<!-- ① ロビー画面 -->
-<div class="container" id="lobby-screen">
-    <h1>しおやゲーム（仮） - ロビー</h1>
-    <div id="master-badge" class="master-badge" style="display: none;"></div>
-    <div class="status-box" id="lobby-status">サーバーに接続中...</div>
-    
-    <div class="input-group">
-        <label>あなたのお名前:<br><input type="text" id="player-name" placeholder="名前を入力してください"></label>
+<div id="bg-image"></div>
+
+<div class="screen-wrapper">
+    <!-- ① ロビー画面 -->
+    <div class="container" id="lobby-screen">
+        <h1>しおやゲーム（仮）<br><span style="font-size: 0.6em;">ロビー</span></h1>
+        
+        <div id="master-badge" class="master-badge" style="display: none;"></div>
+        <div class="status-box" id="lobby-status">サーバーに接続中...</div>
+        
+        <div class="input-group">
+            <label>あなたのお名前:</label>
+            <input type="text" id="player-name" placeholder="名前を入力してください">
+        </div>
+
+        <div class="input-group">
+            <h3 style="text-align: left; margin-bottom: 15px;">ルール設定 <span id="rule-lock-msg" style="font-size:0.8em; color:gray; text-shadow: none;"></span></h3>
+            <button id="transfer-master-btn" class="btn-transfer" style="display: none;">👑 マスター権限を相手に譲渡する</button>
+
+            <div class="flex-input" style="margin-bottom: 15px;">
+                <label style="flex:1;">❤️ 好きなものの個数:</label>
+                <select id="likes-count" style="width: auto; flex: none;">
+                    <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+                </select>
+            </div>
+            <div class="flex-input" style="margin-bottom: 15px;">
+                <label style="flex:1;">🤔 そうでもないものの個数:</label>
+                <select id="dislikes-count" style="width: auto; flex: none;">
+                    <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
+                </select>
+            </div>
+            <div class="flex-input">
+                <label style="flex:1;">💔 ライフ (ドボン許容回数):</label>
+                <select id="lives-count" style="width: auto; flex: none;">
+                    <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
+                </select>
+            </div>
+        </div>
+        <button id="lobby-ready-btn" class="btn-primary" disabled>この設定で開始！</button>
     </div>
 
-    <div class="input-group">
-        <h3>ルール設定 <span id="rule-lock-msg" style="font-size:0.8em; color:gray;"></span></h3>
-        <button id="transfer-master-btn" class="btn-transfer" style="display: none;">👑 マスター権限を相手に譲渡する</button>
+    <!-- ② 入力画面 -->
+    <div class="container" id="setup-screen" style="display: none;">
+        <h1>リスト入力</h1>
+        <div class="status-box" id="setup-status">相手の入力を待っています...</div>
+        
+        <div class="input-group">
+            <h2 style="text-align: left;">❤️ 好きなものランキング</h2>
+            <p style="font-size:0.9em; color:#8b4513; margin-top:-5px; font-weight:bold;">(1位から順に入力してください)</p>
+            <div id="likes-container"></div>
+        </div>
+        <div class="input-group">
+            <h2 style="text-align: left;">🤔 そうでもないもの</h2>
+            <div id="dislikes-container"></div>
+        </div>
+        <button id="submit-btn" class="btn-primary" disabled>入力を完了する</button>
+    </div>
 
-        <label>❤️ 好きなものの個数: 
-            <select id="likes-count">
-                <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
-            </select>
-        </label><br><br>
-        <label>🤔 そうでもないものの個数: 
-            <select id="dislikes-count">
-                <option value="5">5個</option><option value="6">6個</option><option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
-            </select>
-        </label><br><br>
-        <label>💔 ライフ (ドボン許容回数): 
-            <select id="lives-count">
-                <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option>
-            </select>
-        </label>
+    <!-- ③ ゲーム画面 -->
+    <div class="container" id="game-screen" style="display: none;">
+        <div id="stats-board">
+            <div id="p1-stats">先手: 待機中...</div>
+            <div id="p2-stats">後手: 待機中...</div>
+        </div>
+        <div id="game-log"></div>
+        
+        <h2><span id="opponent-name-display"></span>の好きなものはどれ？</h2>
+        <p id="turn-display" class="status-box">通信中...</p>
+        
+        <div id="quiz-board"></div>
     </div>
-    <button id="lobby-ready-btn" disabled>この設定で開始！</button>
-</div>
-
-<!-- ② 入力画面 -->
-<div class="container" id="setup-screen" style="display: none;">
-    <h1>リスト入力</h1>
-    <div class="status-box" id="setup-status">相手の入力を待っています...</div>
-    
-    <div class="input-group">
-        <h2>❤️ 好きなものランキング <span style="font-size:0.8em; color:gray;">(1位から順に入力してください)</span></h2>
-        <div id="likes-container"></div>
-    </div>
-    <div class="input-group">
-        <h2>🤔 そうでもないもの</h2>
-        <div id="dislikes-container"></div>
-    </div>
-    <button id="submit-btn" disabled>入力を完了する</button>
-</div>
-
-<!-- ③ ゲーム画面 -->
-<div class="container" id="game-screen" style="display: none;">
-    <div id="stats-board">
-        <div id="p1-stats">先手: 待機中...</div>
-        <div id="p2-stats">後手: 待機中...</div>
-    </div>
-    <div id="game-log"></div>
-    
-    <h2><span id="opponent-name-display"></span>の好きなものはどれ？</h2>
-    <p id="turn-display" class="status-box">通信中...</p>
-    
-    <div id="quiz-board" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
 </div>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -95,7 +205,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const roomId = urlParams.get('room') || 'default-room';
     const paramName = urlParams.get('name');
-    const clientId = urlParams.get('clientId'); // ★追加: 固有IDを取得
+    const clientId = urlParams.get('clientId'); 
 
     let currentRules = { likesCount: 5, dislikesCount: 5, lives: 3 };
     let amILobbyReady = false, amIInputReady = false, amIMaster = false;
@@ -104,7 +214,6 @@
         if (paramName) document.getElementById('player-name').value = paramName;
     });
 
-    // ★追加: 接続時に固有IDも一緒に送る
     socket.on('connect', () => socket.emit('join room', { roomId: roomId, clientId: clientId }));
 
     const sendSettings = () => {
@@ -184,7 +293,7 @@
     socket.on('start inputting', (rules) => {
         currentRules = rules;
         document.getElementById('lobby-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'block';
+        document.getElementById('setup-screen').style.display = 'flex'; // コンテナのflexを維持
 
         createInputs('likes-container', 'like', '好きなもの', currentRules.likesCount, true);
         createInputs('dislikes-container', 'dislike', 'そうでもないもの', currentRules.dislikesCount, false);
@@ -221,20 +330,18 @@
         socket.emit('submit lists', { likes: likes, dislikes: dislikes });
     });
 
-    // ★追加: リロード時の復元処理
     socket.on('restore playing', (data) => {
         amILobbyReady = true;
         amIInputReady = true;
         renderGameScreen(data.quizList, data.opponentName);
         
-        // 過去に回答済みのボタンを無効化する
         data.answeredIndexes.forEach(index => {
             const btn = document.getElementById(`btn-${index}`);
             if (btn) {
                 btn.disabled = true;
                 btn.classList.add('answered');
                 btn.style.opacity = "0.5";
-                btn.style.background = "gray"; // 色までは復元していませんが、押せない状態にします
+                btn.style.background = "#666";
             }
         });
     });
@@ -243,11 +350,10 @@
         renderGameScreen(data.quizList, data.opponentName);
     });
 
-    // 画面描画を共通化
     function renderGameScreen(quizList, opponentName) {
         document.getElementById('lobby-screen').style.display = 'none';
         document.getElementById('setup-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'block';
+        document.getElementById('game-screen').style.display = 'flex'; // flex維持
         document.getElementById('opponent-name-display').innerText = opponentName;
 
         let html = "";
@@ -272,28 +378,20 @@
         const logArea = document.getElementById('game-log');
         logArea.innerHTML = `<p><strong>${data.guesserName}</strong>: ${data.logMsg}</p>` + logArea.innerHTML;
 
-        // ★修正: 自分が押したボタンに「回答済み」の目印をつける
         if (data.guesserId === socket.id) {
             const btn = document.getElementById(`btn-${data.btnIndex}`);
             if (btn) {
                 btn.disabled = true;
-                btn.classList.add('answered'); // これがないと二度と他のボタンが復活しない
-                btn.style.opacity = "0.5";
-                btn.style.background = data.isCorrect ? "#ff9999" : "#999999";
+                btn.classList.add('answered'); 
+                btn.style.opacity = "0.8";
+                btn.style.background = data.isCorrect ? "linear-gradient(to bottom, #d32f2f, #b71c1c)" : "linear-gradient(to bottom, #607d8b, #455a64)";
             }
         }
 
         if (data.isGameOver) {
-            let resultMsg = data.endReason + "\n\n";
-            if (data.winner === 'perfect') resultMsg += "🎉 引き分け (パーフェクト！)";
-            else if (data.winner === 'draw') resultMsg += "🤝 引き分け";
-            else if (data.winner === socket.id) resultMsg += "🏆 あなたの勝ちです！";
-            else resultMsg += "💀 あなたの負けです...";
-            
             document.getElementById('turn-display').innerText = "ゲーム終了！";
             document.getElementById('turn-display').style.background = "#ffd700";
             
-            // ★修正: データをSessionStorageに保存してリザルト画面へ移動
             setTimeout(() => {
                 const resultPayload = {
                     winner: data.winner,
@@ -307,13 +405,12 @@
         }
     });
 
-    // ★修正: 「回答済み」以外のボタンだけを有効化の対象にする
     function toggleTurnDisplay(isMyTurn) {
         const buttons = document.querySelectorAll('.quiz-item:not(.answered)');
         buttons.forEach(btn => btn.disabled = !isMyTurn);
         const display = document.getElementById('turn-display');
         display.innerText = isMyTurn ? "★ あなたの番です" : "相手の番です...";
-        display.style.background = isMyTurn ? "#ffcccc" : "#e6f2ff";
+        display.style.background = isMyTurn ? "#ffcccc" : "rgba(255, 255, 255, 0.8)";
     }
 </script>
 </body>
