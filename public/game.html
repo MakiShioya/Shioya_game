@@ -94,21 +94,18 @@
     const socket = io("https://shogi.shioya-soft.com/match-game", { transports: ['websocket'] });
     const urlParams = new URLSearchParams(window.location.search);
     const roomId = urlParams.get('room') || 'default-room';
-    
-    // ★追加: index.htmlから渡された名前を取得
-    const paramName = urlParams.get('name'); 
+    const paramName = urlParams.get('name');
+    const clientId = urlParams.get('clientId'); // ★追加: 固有IDを取得
 
     let currentRules = { likesCount: 5, dislikesCount: 5, lives: 3 };
     let amILobbyReady = false, amIInputReady = false, amIMaster = false;
 
-    // ★追加: 取得した名前を入力欄にセットしておく
     window.addEventListener('DOMContentLoaded', () => {
-        if (paramName) {
-            document.getElementById('player-name').value = paramName;
-        }
+        if (paramName) document.getElementById('player-name').value = paramName;
     });
 
-    socket.on('connect', () => socket.emit('join room', roomId));
+    // ★追加: 接続時に固有IDも一緒に送る
+    socket.on('connect', () => socket.emit('join room', { roomId: roomId, clientId: clientId }));
 
     const sendSettings = () => {
         if(amILobbyReady) return; 
@@ -224,17 +221,41 @@
         socket.emit('submit lists', { likes: likes, dislikes: dislikes });
     });
 
+    // ★追加: リロード時の復元処理
+    socket.on('restore playing', (data) => {
+        amILobbyReady = true;
+        amIInputReady = true;
+        renderGameScreen(data.quizList, data.opponentName);
+        
+        // 過去に回答済みのボタンを無効化する
+        data.answeredIndexes.forEach(index => {
+            const btn = document.getElementById(`btn-${index}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('answered');
+                btn.style.opacity = "0.5";
+                btn.style.background = "gray"; // 色までは復元していませんが、押せない状態にします
+            }
+        });
+    });
+
     socket.on('game start', (data) => {
+        renderGameScreen(data.quizList, data.opponentName);
+    });
+
+    // 画面描画を共通化
+    function renderGameScreen(quizList, opponentName) {
+        document.getElementById('lobby-screen').style.display = 'none';
         document.getElementById('setup-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
-        document.getElementById('opponent-name-display').innerText = data.opponentName;
+        document.getElementById('opponent-name-display').innerText = opponentName;
 
         let html = "";
-        data.quizList.forEach((word, index) => {
+        quizList.forEach((word, index) => {
             html += `<button class="quiz-item" onclick="makeGuess('${word}', ${index})" id="btn-${index}">${word}</button>`;
         });
         document.getElementById('quiz-board').innerHTML = html;
-    });
+    }
 
     socket.on('sync game state', (state) => {
         document.getElementById('p1-stats').innerText = `先手(${state.stats.p1.name}) : ライフ ${state.stats.p1.data.lives} / P ${state.stats.p1.data.score}`;
@@ -248,16 +269,18 @@
     }
 
     socket.on('guess result', (data) => {
-        // ログに結果を表示
         const logArea = document.getElementById('game-log');
         logArea.innerHTML = `<p><strong>${data.guesserName}</strong>: ${data.logMsg}</p>` + logArea.innerHTML;
 
-        // ボタンを押した本人の画面だけ、そのボタンを無効化する
+        // ★修正: 自分が押したボタンに「回答済み」の目印をつける
         if (data.guesserId === socket.id) {
             const btn = document.getElementById(`btn-${data.btnIndex}`);
-            btn.disabled = true;
-            btn.style.opacity = "0.5";
-            btn.style.background = "gray";
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('answered'); // これがないと二度と他のボタンが復活しない
+                btn.style.opacity = "0.5";
+                btn.style.background = data.isCorrect ? "#ff9999" : "#999999";
+            }
         }
 
         if (data.isGameOver) {
@@ -270,13 +293,13 @@
             document.getElementById('turn-display').innerText = "ゲーム終了！";
             document.getElementById('turn-display').style.background = "#ffd700";
             
-            // 少し待ってからアラートを出す（ログを読ませるため）
             setTimeout(() => alert(resultMsg), 500);
         }
     });
 
+    // ★修正: 「回答済み」以外のボタンだけを有効化の対象にする
     function toggleTurnDisplay(isMyTurn) {
-        const buttons = document.querySelectorAll('.quiz-item:not([disabled])');
+        const buttons = document.querySelectorAll('.quiz-item:not(.answered)');
         buttons.forEach(btn => btn.disabled = !isMyTurn);
         const display = document.getElementById('turn-display');
         display.innerText = isMyTurn ? "★ あなたの番です" : "相手の番です...";
