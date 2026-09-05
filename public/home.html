@@ -160,18 +160,27 @@
         
         <div class="game-list">
             
-            <!-- ① 好物当てゲーム（実装済み） -->
+            <!-- ① 好物当てゲーム -->
             <div class="game-card" onclick="location.href='favorite_guessr.html'">
-                <div class="game-icon">🤔</div>
+                <div class="game-icon">❶</div>
                 <div class="game-info">
                     <div class="game-title">好物当てゲーム</div>
                     <div class="game-desc">お互いの「好きなもの」を予想して当て合う、親睦を深める心理戦ゲーム！</div>
                 </div>
             </div>
 
-            <!-- ② 準備中（テンプレート用） -->
+            <!-- ② ぐらぐらカレーづくり -->
+            <div class="game-card" onclick="location.href='curry/'">
+                <div class="game-icon">❷</div>
+                <div class="game-info">
+                    <div class="game-title">ぐらぐらカレーづくり</div>
+                    <div class="game-desc">シーソーを傾けて鍋をコントロール！具材を集めて美味しいカレーを作ろう！</div>
+                </div>
+            </div>
+
+            <!-- ③ 準備中（テンプレート用） -->
             <div class="game-card disabled">
-                <div class="game-icon">🚧</div>
+                <div class="game-icon">❸</div>
                 <div class="game-info">
                     <div class="game-title">？？？</div>
                     <div class="game-desc">新しいゲームを準備中です。追加をお待ちください！</div>
@@ -190,7 +199,7 @@
         <h2>メニュー</h2>
         <div class="modal-grid">
             <button class="sub-btn" style="background: #28a745;" onclick="switchModal('menuModal', 'rulesFavoriteGuessrModal')">📖 好物当てルール</button>
-            <!-- 今後ゲームが増えたらここにボタンを追加します -->
+            <button class="sub-btn" style="background: #e67e22;" onclick="switchModal('menuModal', 'rulesCurryModal')">🍛 カレーづくりルール</button>
         </div>
         <button class="sub-btn" style="background: #666;" onclick="closeModal('menuModal')">閉じる</button>
     </div>
@@ -208,6 +217,20 @@
             <p style="color: #d32f2f;">※ 先手が有利/不利にならないよう、後手には「チャンス/ラストチャンス」が与えられます！</p>
         </div>
         <button class="sub-btn" style="background: #666;" onclick="switchModal('rulesFavoriteGuessrModal', 'menuModal')">戻る</button>
+    </div>
+</div>
+
+<!-- ▼ ぐらぐらカレーづくりルール確認ポップアップ -->
+<div id="rulesCurryModal" class="overlay" style="display: none;">
+    <div class="container" style="max-width: 400px; padding: 20px;">
+        <h2>カレーづくりルール</h2>
+        <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: #333; font-weight: bold; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 8px; border: 2px dashed #8b4513; margin-bottom: 15px;">
+            <p>1. マウスを左右に動かしてシーソーを傾け、鍋を滑らせて動かします。</p>
+            <p>2. 落ちてくる具材を鍋でキャッチし、合計5つ集めるとカレーが完成します。</p>
+            <p>3. おじゃまアイテムに触れるか、板の端から鍋が落ちるとライフが減ります。</p>
+            <p>4. 集めた具材の組み合わせ（レシピ役）によって高得点ボーナスを獲得できます。</p>
+        </div>
+        <button class="sub-btn" style="background: #666;" onclick="switchModal('rulesCurryModal', 'menuModal')">戻る</button>
     </div>
 </div>
 
