@@ -40,23 +40,28 @@
         user-select: none;
     }
 
+    /* スマホ画面に合わせて縮小させるレスポンシブ対応 */
     #gameWrapper {
         position: relative;
-        width: 800px;
-        height: 600px;
+        width: 100%;
+        max-width: 800px;
+        aspect-ratio: 4 / 3; /* 800:600 の比率を維持 */
+        height: auto;
         background: var(--bg-cream);
         border: 5px solid var(--base-brown);
         border-radius: 25px;
         box-shadow: 0 10px 30px rgba(67, 37, 23, 0.3);
         overflow: hidden;
+        touch-action: none; /* スマホでのスワイプ時に画面全体がスクロールするのを防ぐ */
     }
 
     canvas {
         display: block;
+        width: 100%;
+        height: 100%;
         background-color: var(--bg-cream);
     }
 
-    /* メニューボタン：スタート画面オーバーレイより前面（z-index: 25）に配置 */
     #menuBtn {
         position: absolute;
         top: 15px;
@@ -78,7 +83,6 @@
         object-fit: contain;
     }
 
-    /* スタート・リザルト用オーバーレイ（z-index: 20） */
     #uiOverlay {
         position: absolute;
         top: 0;
@@ -96,7 +100,6 @@
         z-index: 20;
     }
 
-    /* メニューモーダル：最前面（z-index: 30）に配置 */
     #menuModal {
         position: absolute;
         top: 0;
@@ -233,6 +236,18 @@
         box-shadow: none;
         cursor: not-allowed;
     }
+
+    @media (max-width: 600px) {
+        .modal-card {
+            padding: 20px;
+        }
+        h1 {
+            font-size: 1.8rem;
+        }
+        #resultDetails h2 {
+            font-size: 1.8rem;
+        }
+    }
 </style>
 </head>
 <body>
@@ -259,9 +274,18 @@
             
             <div class="menu-section">
                 <h3>あそびかた</h3>
-                <p>マウスを左右に動かしてシーソーを傾け、鍋を操作します。</p>
+                <p>画面をスワイプ、またはマウスを左右に動かしてシーソーを傾け、鍋を操作します。</p>
                 <p>上から落ちてくる具材を5つ鍋に入れるとカレーが完成します。</p>
                 <p>鍋を落としてしまうか、おじゃまアイテムに触れるとライフが減ります。</p>
+            </div>
+
+            <!-- スマホ用の傾き操作設定 -->
+            <div class="menu-section">
+                <h3>操作設定</h3>
+                <div style="text-align: center; margin-top: 10px;">
+                    <button id="tiltBtn" class="btn" style="font-size: 1rem; padding: 10px 20px;">スマホの傾き操作をオンにする</button>
+                    <p style="font-size: 0.85rem; margin-top: 10px; color: #666;">スマートフォンのブラウザでのみ動作します</p>
+                </div>
             </div>
             
             <div class="menu-section">
@@ -303,6 +327,7 @@
     const resultTitle = document.getElementById('resultTitle');
     const resultDetails = document.getElementById('resultDetails');
     const actionButton = document.getElementById('actionButton');
+    const tiltBtn = document.getElementById('tiltBtn');
 
     // オーディオ設定
     const bgm = new Audio('curry.mp3');
@@ -365,6 +390,7 @@
     let gameState = 'START';
     let previousState = 'START';
     let mouseX = 400;
+    let useTiltControl = false;
 
     // パラメータ
     const maxTilt = 15 * (Math.PI / 180);
@@ -387,7 +413,6 @@
     }
     const totalPoolSize = 35;
 
-    // プレイヤー変数
     let lives = 3;
     let score = 0;
     let ingredientCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -398,24 +423,76 @@
 
     let items = [];
 
-    // 固定タイムステップ
     let lastTime = performance.now();
     let accumulator = 0;
     const fixedDeltaTime = 1000 / 60;
 
-    canvas.addEventListener('mousemove', (e) => {
+    // --- 入力制御（マウス・タッチ共通） ---
+    function handlePointerMove(clientX) {
+        if (useTiltControl) return; // 傾き操作オンの場合はタッチ・マウス操作を無視
         const rect = canvas.getBoundingClientRect();
-        mouseX = e.clientX - rect.left;
+        // 画面がCSSで縮小されていても、内部の800px座標系に変換する
+        const scaleX = canvas.width / rect.width;
+        mouseX = (clientX - rect.left) * scaleX;
+        
         if (mouseX < 0) mouseX = 0;
         if (mouseX > canvas.width) mouseX = canvas.width;
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+        handlePointerMove(e.clientX);
     });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // スクロール防止
+        handlePointerMove(e.touches[0].clientX);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        handlePointerMove(e.touches[0].clientX);
+    }, { passive: false });
+
+    // --- 端末の傾き（ジャイロ）制御 ---
+    tiltBtn.addEventListener('click', () => {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS 13以降の許可ダイアログ処理
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        enableTilt();
+                    } else {
+                        tiltBtn.innerText = '許可されませんでした';
+                    }
+                })
+                .catch(console.error);
+        } else {
+            // Androidや許可不要なブラウザ
+            enableTilt();
+        }
+    });
+
+    function enableTilt() {
+        useTiltControl = true;
+        tiltBtn.innerText = '傾き操作：オン';
+        tiltBtn.style.background = 'linear-gradient(to bottom, #2ecc71, #27ae60)';
+        
+        window.addEventListener('deviceorientation', (e) => {
+            if (!useTiltControl || gameState !== 'PLAYING') return;
+            // 左右の傾き (-90 〜 90)
+            const gamma = e.gamma || 0;
+            // 極端な傾きを防ぐため -30度 〜 30度 の範囲で制限
+            const clampedGamma = Math.max(-30, Math.min(30, gamma));
+            // 傾き角度を 0 〜 800 の内部座標にマッピング（0度のとき400）
+            mouseX = 400 + (clampedGamma / 30) * 400;
+        });
+    }
 
     actionButton.addEventListener('click', () => {
         initGame();
         bgm.play().catch(err => console.log("BGM再生エラー:", err));
     });
 
-    // メニュー制御（スタート前やリザルト表示中でも開閉可能）
     function openMenu() {
         previousState = gameState;
         if (gameState === 'PLAYING') {
@@ -525,7 +602,8 @@
         invincibleFrames = 0;
         boostFrames = 0;
         items = [];
-        mouseX = 400;
+        // 傾き操作中はマウス位置をリセットしない
+        if (!useTiltControl) mouseX = 400;
 
         let currentY = -100;
         for (let i = 0; i < totalPoolSize; i++) {
@@ -753,7 +831,6 @@
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
 
-        // SetoFont をキャンバス描画に指定
         ctx.font = 'bold 22px SetoFont, sans-serif';
         ctx.fillText('ライフ: ', 25, 40);
 
