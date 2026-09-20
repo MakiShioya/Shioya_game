@@ -5,6 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ぐらぐらカレーづくり - しおやミニゲーム</title>
 <style>
+    #countdownScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    display: none; /* 初期状態は非表示 */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 40;
+    overflow: hidden;
+    animation: filmFlicker 0.15s infinite;
+}
+
+/* フィルムの十字線 */
+.film-line-v {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.15);
+}
+.film-line-h {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+#countdownNumber {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8rem;
+    font-weight: bold;
+    color: #fff;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    box-shadow: 0 0 20px rgba(255,255,255,0.2), inset 0 0 20px rgba(255,255,255,0.2);
+}
+
+@keyframes filmFlicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.85; filter: sepia(0.2) contrast(1.1); }
+    100% { opacity: 1; }
+}
     @font-face {
         font-family: 'SetoFont';
         src: url('/font/setofont.ttf') format('truetype');
@@ -253,6 +305,11 @@
 <body>
 
 <div id="gameWrapper">
+    <div id="countdownScreen">
+        <div class="film-line-v"></div>
+        <div class="film-line-h"></div>
+        <div id="countdownNumber">3</div>
+    </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <button id="menuBtn" onclick="openMenu()">
@@ -328,6 +385,8 @@
     const resultDetails = document.getElementById('resultDetails');
     const actionButton = document.getElementById('actionButton');
     const tiltBtn = document.getElementById('tiltBtn');
+    const countdownScreen = document.getElementById('countdownScreen');
+const countdownNumber = document.getElementById('countdownNumber');
 
     // オーディオ設定
     const bgm = new Audio('curry.mp3');
@@ -490,9 +549,39 @@
     }
 
     actionButton.addEventListener('click', () => {
-        initGame();
-        bgm.play().catch(err => console.log("BGM再生エラー:", err));
+    // 1. メニューやリザルトUIを消す
+    uiOverlay.style.display = 'none';
+    menuModal.style.display = 'none';
+    
+    // 2. スマホのAudio再生制限を解除するために、ここで一斉にload()を走らせる
+    const allAudio = [bgm, seGuzai, seItem, seOjama, seClear];
+    allAudio.forEach(audio => {
+        audio.load();
     });
+
+    // 3. カウントダウン画面を表示
+    countdownScreen.style.display = 'flex';
+    
+    let count = 3;
+    countdownNumber.innerText = count;
+
+    // 1秒ごとに数字を減らす
+    const timerId = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownNumber.innerText = count;
+        } else {
+            // カウントダウン終了時の処理
+            clearInterval(timerId);
+            countdownScreen.style.display = 'none';
+            
+            // ゲームを初期化して開始
+            initGame();
+            bgm.currentTime = 0;
+            bgm.play().catch(err => console.log("BGM再生エラー:", err));
+        }
+    }, 1000);
+});
 
     function openMenu() {
         previousState = gameState;
