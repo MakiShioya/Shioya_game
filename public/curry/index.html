@@ -337,6 +337,7 @@
     const seGuzai = new Audio('guzai.mp3');
     const seItem = new Audio('item.mp3');
     const seOjama = new Audio('ojama.mp3');
+    const seClear = new Audio('beto7.mp3');
 
     document.getElementById('bgmVolume').addEventListener('input', (e) => {
         bgm.volume = parseFloat(e.target.value);
@@ -576,6 +577,11 @@
         gameState = isGameOver ? 'GAMEOVER' : 'CLEAR';
         resultTitle.innerText = isGameOver ? 'ゲームオーバー' : 'カレー完成';
         actionButton.innerText = 'もう一度あそぶ';
+
+        if (!isGameOver) {
+        bgm.pause(); // BGMを止めてクリア音を強調する
+        playSE(seClear); // ベートーヴェンのクリア音を再生
+    }
         
         const res = calculateScore(isGameOver);
         
