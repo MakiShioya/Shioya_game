@@ -5,58 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ぐらぐらカレーづくり - しおやミニゲーム</title>
 <style>
-    #countdownScreen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #1a1a1a;
-    display: none; /* 初期状態は非表示 */
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 40;
-    overflow: hidden;
-    animation: filmFlicker 0.15s infinite;
-}
-
-/* フィルムの十字線 */
-.film-line-v {
-    position: absolute;
-    width: 2px;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.15);
-}
-.film-line-h {
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.15);
-}
-
-#countdownNumber {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    font-size: 8rem;
-    font-weight: bold;
-    color: #fff;
-    border: 4px solid #fff;
-    border-radius: 50%;
-    width: 200px;
-    height: 200px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    text-shadow: 0 0 10px rgba(255,255,255,0.5);
-    box-shadow: 0 0 20px rgba(255,255,255,0.2), inset 0 0 20px rgba(255,255,255,0.2);
-}
-
-@keyframes filmFlicker {
-    0% { opacity: 1; }
-    50% { opacity: 0.85; filter: sepia(0.2) contrast(1.1); }
-    100% { opacity: 1; }
-}
     @font-face {
         font-family: 'SetoFont';
         src: url('/font/setofont.ttf') format('truetype');
@@ -167,6 +115,31 @@
         -webkit-backdrop-filter: blur(4px);
         padding: 20px;
         z-index: 30;
+    }
+
+    /* ロード画面用スタイル */
+    #loadingScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--bg-cream);
+        display: none; /* 初期状態は非表示 */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 40;
+    }
+    #loadingScreen h2 {
+        font-size: 3rem;
+        color: var(--base-brown);
+        animation: blink 1.5s infinite;
+        letter-spacing: 2px;
+    }
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
     }
 
     .modal-card {
@@ -305,11 +278,11 @@
 <body>
 
 <div id="gameWrapper">
-    <div id="countdownScreen">
-        <div class="film-line-v"></div>
-        <div class="film-line-h"></div>
-        <div id="countdownNumber">3</div>
+    <!-- ロード画面 -->
+    <div id="loadingScreen">
+        <h2>Now Loading...</h2>
     </div>
+
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <button id="menuBtn" onclick="openMenu()">
@@ -336,7 +309,6 @@
                 <p>鍋を落としてしまうか、おじゃまアイテムに触れるとライフが減ります。</p>
             </div>
 
-            <!-- スマホ用の傾き操作設定 -->
             <div class="menu-section">
                 <h3>操作設定</h3>
                 <div style="text-align: center; margin-top: 10px;">
@@ -381,12 +353,11 @@
     const ctx = canvas.getContext('2d');
     const uiOverlay = document.getElementById('uiOverlay');
     const menuModal = document.getElementById('menuModal');
+    const loadingScreen = document.getElementById('loadingScreen');
     const resultTitle = document.getElementById('resultTitle');
     const resultDetails = document.getElementById('resultDetails');
     const actionButton = document.getElementById('actionButton');
     const tiltBtn = document.getElementById('tiltBtn');
-    const countdownScreen = document.getElementById('countdownScreen');
-const countdownNumber = document.getElementById('countdownNumber');
 
     // オーディオ設定
     const bgm = new Audio('curry.mp3');
@@ -396,7 +367,10 @@ const countdownNumber = document.getElementById('countdownNumber');
     const seGuzai = new Audio('guzai.mp3');
     const seItem = new Audio('item.mp3');
     const seOjama = new Audio('ojama.mp3');
-    const seClear = new Audio('beto7.mp3');
+    
+    // クリア音を追加
+    const seClear = new Audio('public/curry/beto7.mp3');
+    seClear.preload = 'auto'; // 事前に読み込みを指示
 
     document.getElementById('bgmVolume').addEventListener('input', (e) => {
         bgm.volume = parseFloat(e.target.value);
@@ -478,6 +452,7 @@ const countdownNumber = document.getElementById('countdownNumber');
     let ingredientCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let invincibleFrames = 0;
     let boostFrames = 0;
+    let fallDelayFrames = 0; // 開始時の落下待機フレーム
     let d = 0;
     let vd = 0;
 
@@ -548,40 +523,45 @@ const countdownNumber = document.getElementById('countdownNumber');
         });
     }
 
+    // --- 音声ロードとゲーム開始処理 ---
     actionButton.addEventListener('click', () => {
-    // 1. メニューやリザルトUIを消す
-    uiOverlay.style.display = 'none';
-    menuModal.style.display = 'none';
-    
-    // 2. スマホのAudio再生制限を解除するために、ここで一斉にload()を走らせる
-    const allAudio = [bgm, seGuzai, seItem, seOjama, seClear];
-    allAudio.forEach(audio => {
-        audio.load();
-    });
+        uiOverlay.style.display = 'none';
+        menuModal.style.display = 'none';
+        loadingScreen.style.display = 'flex'; // Now Loading画面を表示
+        
+        const allAudio = [bgm, seGuzai, seItem, seOjama, seClear];
+        let audioLoadedCount = 0;
+        let hasStarted = false;
 
-    // 3. カウントダウン画面を表示
-    countdownScreen.style.display = 'flex';
-    
-    let count = 3;
-    countdownNumber.innerText = count;
-
-    // 1秒ごとに数字を減らす
-    const timerId = setInterval(() => {
-        count--;
-        if (count > 0) {
-            countdownNumber.innerText = count;
-        } else {
-            // カウントダウン終了時の処理
-            clearInterval(timerId);
-            countdownScreen.style.display = 'none';
-            
-            // ゲームを初期化して開始
+        const startGame = () => {
+            if (hasStarted) return;
+            hasStarted = true;
+            loadingScreen.style.display = 'none'; // ロード画面を終了
             initGame();
             bgm.currentTime = 0;
             bgm.play().catch(err => console.log("BGM再生エラー:", err));
-        }
-    }, 1000);
-});
+        };
+
+        allAudio.forEach(audio => {
+            // 既にロード済みの場合
+            if (audio.readyState >= 3) { // HAVE_FUTURE_DATA
+                audioLoadedCount++;
+                if (audioLoadedCount === allAudio.length) startGame();
+            } else {
+                // ロード完了イベントを待機
+                const onCanPlay = () => {
+                    audio.removeEventListener('canplaythrough', onCanPlay);
+                    audioLoadedCount++;
+                    if (audioLoadedCount === allAudio.length) startGame();
+                };
+                audio.addEventListener('canplaythrough', onCanPlay);
+                audio.load();
+            }
+        });
+
+        // ネットワーク環境やブラウザ制限によりロードが終わらない場合のフェールセーフ (3秒後に強制スタート)
+        setTimeout(startGame, 3000);
+    });
 
     function openMenu() {
         previousState = gameState;
@@ -666,11 +646,12 @@ const countdownNumber = document.getElementById('countdownNumber');
         gameState = isGameOver ? 'GAMEOVER' : 'CLEAR';
         resultTitle.innerText = isGameOver ? 'ゲームオーバー' : 'カレー完成';
         actionButton.innerText = 'もう一度あそぶ';
-
+        
+        // クリア時にベートーヴェンの音源を再生する
         if (!isGameOver) {
-        bgm.pause(); // BGMを止めてクリア音を強調する
-        playSE(seClear); // ベートーヴェンのクリア音を再生
-    }
+            bgm.pause(); // BGMを一時停止
+            playSE(seClear); // クリア音を再生
+        }
         
         const res = calculateScore(isGameOver);
         
@@ -696,6 +677,7 @@ const countdownNumber = document.getElementById('countdownNumber');
         vd = 0;
         invincibleFrames = 0;
         boostFrames = 0;
+        fallDelayFrames = 60; // ゲーム開始後60フレーム（約1秒）アイテムの落下を待機する
         items = [];
         // 傾き操作中はマウス位置をリセットしない
         if (!useTiltControl) mouseX = 400;
@@ -773,32 +755,40 @@ const countdownNumber = document.getElementById('countdownNumber');
         const potCenterX = 400 + d * Math.cos(tilt) + nx * (potHeight / 2);
         const potCenterY = 500 + d * Math.sin(tilt) + ny * (potHeight / 2);
 
-        items.forEach(item => {
-            item.y += itemSpeed;
+        // 待機時間が終わるまでアイテムは落下させない
+        if (fallDelayFrames > 0) {
+            fallDelayFrames--;
+        } else {
+            items.forEach(item => {
+                item.y += itemSpeed;
 
-            if (item.y > canvas.height + 50) {
-                const rand = Math.random();
-                if (rand < 0.20) {
-                    item.category = 'ingredient';
-                    item.subType = Math.floor(Math.random() * 5) + 1;
-                } else if (rand < 0.30) {
-                    item.category = 'powerup';
-                    item.subType = Math.floor(Math.random() * 3) + 1;
-                } else {
-                    item.category = 'obstacle';
-                    item.variant = Math.floor(Math.random() * 4) + 1;
+                if (item.y > canvas.height + 50) {
+                    const rand = Math.random();
+                    if (rand < 0.20) {
+                        item.category = 'ingredient';
+                        item.subType = Math.floor(Math.random() * 5) + 1;
+                    } else if (rand < 0.30) {
+                        item.category = 'powerup';
+                        item.subType = Math.floor(Math.random() * 3) + 1;
+                    } else {
+                        item.category = 'obstacle';
+                        item.variant = Math.floor(Math.random() * 4) + 1;
+                    }
+                    
+                    item.x = 150 + Math.random() * 500;
+                    item.active = true;
+
+                    let minY = 0;
+                    items.forEach(it => {
+                        if (it.y < minY) minY = it.y;
+                    });
+                    item.y = minY - getRandomSpacing();
                 }
-                
-                item.x = 150 + Math.random() * 500;
-                item.active = true;
+            });
+        }
 
-                let minY = 0;
-                items.forEach(it => {
-                    if (it.y < minY) minY = it.y;
-                });
-                item.y = minY - getRandomSpacing();
-            }
-
+        // 当たり判定
+        items.forEach(item => {
             if (!item.active) return;
 
             const dx = item.x - potCenterX;
