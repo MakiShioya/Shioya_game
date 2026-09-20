@@ -371,6 +371,8 @@
     // クリア音を追加
     const seClear = new Audio('beto7.mp3');
     seClear.preload = 'auto'; // 事前に読み込みを指示
+    const seGameOver = new Audio('beto7-2.mp3');
+    seGameOver.preload = 'auto';
 
     document.getElementById('bgmVolume').addEventListener('input', (e) => {
         bgm.volume = parseFloat(e.target.value);
@@ -529,7 +531,7 @@
         menuModal.style.display = 'none';
         loadingScreen.style.display = 'flex'; // Now Loading画面を表示
         
-        const allAudio = [bgm, seGuzai, seItem, seOjama, seClear];
+        const allAudio = [bgm, seGuzai, seItem, seOjama, seClear, seGameOver];
         let audioLoadedCount = 0;
         let hasStarted = false;
 
@@ -646,11 +648,12 @@
         gameState = isGameOver ? 'GAMEOVER' : 'CLEAR';
         resultTitle.innerText = isGameOver ? 'ゲームオーバー' : 'カレー完成';
         actionButton.innerText = 'もう一度あそぶ';
-        
-        // クリア時にベートーヴェンの音源を再生する
+
+        bgm.pause(); // 結果画面ではBGMを停止する
         if (!isGameOver) {
-            bgm.pause(); // BGMを一時停止
             playSE(seClear); // クリア音を再生
+        } else {
+            playSE(seGameOver); // ゲームオーバー音を再生
         }
         
         const res = calculateScore(isGameOver);
