@@ -52,6 +52,25 @@
         .modal-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 15px 0; }
         .sub-btn { width: 100%; padding: 12px; font-size: 1.1rem; background: #432517; color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .sub-btn:active { transform: scale(0.95); }
+
+        /* ★追加: ランキング表のスタイル */
+        .ranking-board { background: rgba(255, 255, 255, 0.9); border: 2px solid #8b4513; border-radius: 8px; margin-bottom: 15px; overflow: hidden; transition: max-height 0.3s ease; }
+        .ranking-board.closed .ranking-content { display: none; }
+        .ranking-header { background: #e6c280; color: #8b4513; padding: 10px; font-weight: bold; text-align: center; cursor: pointer; border-bottom: 2px dashed transparent; }
+        .ranking-board:not(.closed) .ranking-header { border-bottom-color: #8b4513; }
+        .ranking-content { display: flex; padding: 10px; gap: 10px; }
+        .ranking-col { flex: 1; }
+        .ranking-col h4 { margin: 0 0 10px 0; font-size: 0.95rem; text-align: center; color: #432517; border-bottom: 2px solid #d2b48c; padding-bottom: 5px; }
+        .ranking-col ul { list-style: none; padding: 0; margin: 0; }
+        .ranking-col li { padding: 5px; border-bottom: 1px dotted #8b4513; font-size: 0.95rem; color: #333; font-weight: bold; text-align: center; }
+        .ranking-col li.unknown { color: #999; }
+        
+        /* ★追加: 正誤判定ポップアップのスタイル */
+        .flash-popup { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; z-index: 1000; pointer-events: none; }
+        .flash-popup-text { font-size: 2.2rem; font-weight: bold; padding: 20px 40px; border-radius: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; white-space: pre-wrap; }
+        .flash-correct { background: rgba(40, 167, 69, 0.95); color: white; border: 5px solid #fff; }
+        .flash-wrong { background: rgba(220, 53, 69, 0.95); color: white; border: 5px solid #fff; }
+        @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
