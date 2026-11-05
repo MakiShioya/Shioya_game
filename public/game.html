@@ -71,6 +71,7 @@
         .flash-correct { background: rgba(40, 167, 69, 0.95); color: white; border: 5px solid #fff; }
         .flash-wrong { background: rgba(220, 53, 69, 0.95); color: white; border: 5px solid #fff; }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .flash-safe { background: rgba(255, 193, 7, 0.95); color: #333; border: 5px solid #fff; }
     </style>
 </head>
 <body>
@@ -103,21 +104,29 @@
 
             <!-- ★修正: 選択肢を3〜10に変更 -->
             <div class="flex-input" style="margin-bottom: 15px;">
-                <label style="flex:1;">❤️ 好きなものの個数:</label>
+                <label style="flex:1;">好きなものの個数:</label>
                 <select id="likes-count" style="width: auto; flex: none;">
                     <option value="3">3個</option><option value="4">4個</option><option value="5" selected>5個</option><option value="6">6個</option>
                     <option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
                 </select>
             </div>
             <div class="flex-input" style="margin-bottom: 15px;">
-                <label style="flex:1;">🤔 そうでもないものの個数:</label>
+                <label style="flex:1;">セーフの個数:</label>
+                <select id="safes-count" style="width: auto; flex: none;">
+                    <option value="0" selected>0個</option><option value="1">1個</option>
+                    <option value="2">2個</option><option value="3">3個</option>
+                    <option value="4">4個</option><option value="5">5個</option>
+                </select>
+            </div>
+            <div class="flex-input" style="margin-bottom: 15px;">
+                <label style="flex:1;">そうでもないものの個数:</label>
                 <select id="dislikes-count" style="width: auto; flex: none;">
                     <option value="3" selected>3個</option><option value="4">4個</option><option value="5">5個</option><option value="6">6個</option>
                     <option value="7">7個</option><option value="8">8個</option><option value="9">9個</option><option value="10">10個</option>
                 </select>
             </div>
             <div class="flex-input">
-                <label style="flex:1;">💔 ライフ (ドボン許容回数):</label>
+                <label style="flex:1;">ライフの個数:</label>
                 <select id="lives-count" style="width: auto; flex: none;">
                     <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
                 </select>
@@ -133,12 +142,17 @@
         
         <div class="input-group">
             <!-- ★ジャンル表示 -->
-            <h2 style="text-align: left;">❤️ 好きな <span class="genre-display-text">---</span></h2>
+            <h2 style="text-align: left;">好きな <span class="genre-display-text">---</span></h2>
             <p style="font-size:0.9em; color:#8b4513; margin-top:-5px; font-weight:bold;">(1位から順に入力してください)</p>
             <div id="likes-container"></div>
         </div>
+        <div class="input-group" id="safes-group" style="display:none;">
+            <h2 style="text-align: left;">次に好きな</h2>
+            <p style="font-size:0.9em; color:#8b4513; margin-top:-5px; font-weight:bold;">(選ばれてもセーフになるものです)</p>
+            <div id="safes-container"></div>
+        </div>
         <div class="input-group">
-            <h2 style="text-align: left;">🤔 そうでもない <span class="genre-display-text">---</span></h2>
+            <h2 style="text-align: left;">そうでもない <span class="genre-display-text">---</span></h2>
             <div id="dislikes-container"></div>
         </div>
         <button id="submit-btn" class="btn-primary" disabled>入力を完了する</button>
