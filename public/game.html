@@ -156,6 +156,20 @@
                 <div class="stat-values">-</div>
             </div>
         </div>
+
+        <div id="ranking-board" class="ranking-board closed">
+            <div class="ranking-header" onclick="toggleRanking()">📊 判明したランキング (タップで開閉)</div>
+            <div class="ranking-content">
+                <div class="ranking-col">
+                    <h4>自分のランキング<br><span style="font-size: 0.8em; font-weight: normal;">(相手が当てたもの)</span></h4>
+                    <ul id="my-ranking-list"></ul>
+                </div>
+                <div class="ranking-col">
+                    <h4>相手のランキング<br><span style="font-size: 0.8em; font-weight: normal;">(自分が当てたもの)</span></h4>
+                    <ul id="opp-ranking-list"></ul>
+                </div>
+            </div>
+        </div>
         
         <div id="game-log"></div>
         
