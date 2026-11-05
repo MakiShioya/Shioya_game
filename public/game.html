@@ -443,9 +443,35 @@
         toggleTurnDisplay(false); 
     }
 
+    // ★修正: guess result
     socket.on('guess result', (data) => {
         const logArea = document.getElementById('game-log');
         logArea.innerHTML = `<p><strong>${data.guesserName}</strong>: ${data.logMsg}</p>` + logArea.innerHTML;
+
+        // === ★追加: フラッシュポップアップの表示 ===
+        const popup = document.getElementById('flash-popup');
+        const popupText = document.getElementById('flash-popup-text');
+        
+        let text = "";
+        let className = "";
+        
+        if (data.isCorrect) {
+            text = data.guesserId === socket.id ? `正解！ 第${data.rank}位` : `相手が正解！\n(第${data.rank}位)`;
+            className = 'flash-popup-text flash-correct';
+        } else {
+            text = data.guesserId === socket.id ? `ドボン...` : `相手がドボン...`;
+            className = 'flash-popup-text flash-wrong';
+        }
+        
+        popupText.className = className;
+        popupText.innerText = text;
+        popup.style.display = 'flex';
+        
+        // 1.2秒後に非表示にする
+        setTimeout(() => {
+            popup.style.display = 'none';
+        }, 1200);
+        // ===================================
 
         if (data.guesserId === socket.id) {
             const btn = document.getElementById(`btn-${data.btnIndex}`);
