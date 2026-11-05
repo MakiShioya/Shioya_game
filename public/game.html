@@ -41,8 +41,10 @@
         .stat-name { font-size: 0.95rem; color: #8b4513; border-bottom: 1px dashed #d2b48c; margin-bottom: 5px; padding-bottom: 3px; }
         .stat-values { font-size: 1.3rem; color: #ff4d4d;}
 
+        /*
         #game-log { height: 120px; overflow-y: auto; background: rgba(255,255,255,0.8); padding: 10px; border: 2px solid #8b4513; border-radius: 8px; margin-bottom: 15px; font-size: 1rem; color: #333; }
         #game-log p { margin: 5px 0; border-bottom: 1px dashed #d2b48c; padding-bottom: 5px; }
+        */
         #quiz-board { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 5px; }
         .quiz-item { background: linear-gradient(to bottom, #8b4513, #5e3522); color: #ECDBBF; border: 3px solid #ECDBBF; border-radius: 10px; padding: 15px 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-shadow: 1px 1px 2px #000; }
         .quiz-item:not([disabled]):active { transform: scale(0.95); }
@@ -54,7 +56,7 @@
         .sub-btn:active { transform: scale(0.95); }
 
         /* ★追加: ランキング表のスタイル */
-        .ranking-board { background: rgba(255, 255, 255, 0.9); border: 2px solid #8b4513; border-radius: 8px; margin-bottom: 15px; overflow: hidden; transition: max-height 0.3s ease; }
+        .ranking-board { background: rgba(255, 255, 255, 0.9); border: 2px solid #8b4513; border-radius: 8px; margin-bottom: 15px; }
         .ranking-board.closed .ranking-content { display: none; }
         .ranking-header { background: #e6c280; color: #8b4513; padding: 10px; font-weight: bold; text-align: center; cursor: pointer; border-bottom: 2px dashed transparent; }
         .ranking-board:not(.closed) .ranking-header { border-bottom-color: #8b4513; }
@@ -184,8 +186,10 @@
                 </div>
             </div>
         </div>
-        
+
+        <!--
         <div id="game-log"></div>
+        -->
         
         <!-- ★ジャンル表示 -->
         <h2><span id="opponent-name-display"></span>の好きな<span class="genre-display-text">---</span>は？</h2>
@@ -448,15 +452,32 @@
         document.getElementById('ranking-board').classList.toggle('closed');
     }
 
+    // ★修正: ドボンも含めたリストを描画し、色分けする
     function renderRankingList(elementId, revealedArray) {
         const ul = document.getElementById(elementId);
         ul.innerHTML = "";
+        const likes = currentRules.likesCount;
+        const safes = currentRules.safesCount || 0;
+
         revealedArray.forEach((word, index) => {
             const li = document.createElement('li');
-            if (word) {
-                li.innerText = `${index + 1}位: ${word}`;
+            let prefix = "";
+            
+            // 順位や種類によって表示を変える
+            if (index < likes) {
+                prefix = `${index + 1}位:`;
+            } else if (index < likes + safes) {
+                prefix = `セーフ:`;
+                if(word) li.style.color = "#28a745"; // 判明時は緑
             } else {
-                li.innerText = `${index + 1}位: ？？？`;
+                prefix = `ドボン:`;
+                if(word) li.style.color = "#d32f2f"; // 判明時は赤
+            }
+
+            if (word) {
+                li.innerText = `${prefix} ${word}`;
+            } else {
+                li.innerText = `${prefix} ？？？`;
                 li.className = 'unknown';
             }
             ul.appendChild(li);
@@ -468,10 +489,9 @@
         toggleTurnDisplay(false); 
     }
 
-    // ★修正: ポップアップとボタン色にセーフを追加
+    // ★修正: guess resultから game-log へのテキスト追加処理を削除
     socket.on('guess result', (data) => {
-        const logArea = document.getElementById('game-log');
-        logArea.innerHTML = `<p><strong>${data.guesserName}</strong>: ${data.logMsg}</p>` + logArea.innerHTML;
+        // ここにあった logArea.innerHTML = ... の2行を削除しました
 
         const popup = document.getElementById('flash-popup');
         const popupText = document.getElementById('flash-popup-text');
@@ -482,7 +502,7 @@
         if (data.isCorrect) {
             text = data.guesserId === socket.id ? `正解！ 第${data.rank}位` : `相手が正解！\n(第${data.rank}位)`;
             className = 'flash-popup-text flash-correct';
-        } else if (data.isSafe) { // ★追加
+        } else if (data.isSafe) {
             text = data.guesserId === socket.id ? `セーフ！ 第${data.rank}位\n(惜しい！)` : `相手がセーフ\n(第${data.rank}位)`;
             className = 'flash-popup-text flash-safe';
         } else {
@@ -504,6 +524,7 @@
                 btn.disabled = true;
                 btn.classList.add('answered'); 
                 btn.style.opacity = "0.8";
+                
                 if (data.isCorrect) {
                     btn.style.background = "linear-gradient(to bottom, #d32f2f, #b71c1c)";
                 } else if (data.isSafe) {
