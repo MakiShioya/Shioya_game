@@ -208,6 +208,10 @@
     </div>
 </div>
 
+    <div id="flash-popup" class="flash-popup" style="display: none;">
+    <div id="flash-popup-text" class="flash-popup-text"></div>
+</div>
+    
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
     const socket = io("https://shogi.shioya-soft.com/match-game", { transports: ['websocket'] });
@@ -399,8 +403,40 @@
             <div class="stat-name">後手：${state.stats.p2.name}</div>
             <div class="stat-values">❤️ ${state.stats.p2.data.lives}</div>
         `;
+        
+        // ★追加: ランキングの更新
+        const isMeP1 = (socket.id === state.p1Id);
+        const myRevealed = isMeP1 ? state.stats.p1.revealed : state.stats.p2.revealed;
+        const oppRevealed = isMeP1 ? state.stats.p2.revealed : state.stats.p1.revealed;
+        // サーバーからデータが来ていれば描画する
+        if (myRevealed && oppRevealed) {
+            renderRankingList('my-ranking-list', myRevealed);
+            renderRankingList('opp-ranking-list', oppRevealed);
+        }
+
         toggleTurnDisplay(state.turn === socket.id);
     });
+
+    // ★追加: ランキング表の開閉
+    function toggleRanking() {
+        document.getElementById('ranking-board').classList.toggle('closed');
+    }
+
+    // ★追加: ランキングリストの描画
+    function renderRankingList(elementId, revealedArray) {
+        const ul = document.getElementById(elementId);
+        ul.innerHTML = "";
+        revealedArray.forEach((word, index) => {
+            const li = document.createElement('li');
+            if (word) {
+                li.innerText = `${index + 1}位: ${word}`;
+            } else {
+                li.innerText = `${index + 1}位: ？？？`;
+                li.className = 'unknown';
+            }
+            ul.appendChild(li);
+        });
+    }
 
     function makeGuess(word, index) {
         socket.emit('make guess', { word: word, index: index });
