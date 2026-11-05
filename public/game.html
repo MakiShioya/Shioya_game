@@ -94,11 +94,11 @@
 
         <div class="input-group">
             <h3 style="text-align: left; margin-bottom: 15px;">ルール設定 <span id="rule-lock-msg" style="font-size:0.8em; color:gray; text-shadow: none;"></span></h3>
-            <button id="transfer-master-btn" class="btn-transfer" style="display: none;">👑 マスター権限を相手に譲渡する</button>
+            <button id="transfer-master-btn" class="btn-transfer" style="display: none;">マスター権限を相手に譲渡する</button>
 
             <!-- ★追加: ジャンル入力 -->
             <div class="flex-input" style="margin-bottom: 15px;">
-                <label style="flex:1;">🏷️ ジャンル (お題):</label>
+                <label style="flex:1;">ジャンル (お題):</label>
                 <input type="text" id="game-genre" placeholder="例: 食べ物" value="食べ物" style="width: auto; flex: none;">
             </div>
 
@@ -172,7 +172,7 @@
         </div>
 
         <div id="ranking-board" class="ranking-board closed">
-            <div class="ranking-header" onclick="toggleRanking()">📊 判明したランキング (タップで開閉)</div>
+            <div class="ranking-header" onclick="toggleRanking()">判明したランキング (タップで開閉)</div>
             <div class="ranking-content">
                 <div class="ranking-col">
                     <h4>自分のランキング<br><span style="font-size: 0.8em; font-weight: normal;">(相手が当てたもの)</span></h4>
@@ -234,7 +234,7 @@
     const paramName = urlParams.get('name');
     const clientId = urlParams.get('clientId'); 
 
-    let currentRules = { genre: "食べ物", likesCount: 5, dislikesCount: 3, lives: 2 };
+    let currentRules = { genre: "食べ物", likesCount: 5, safesCount: 0, dislikesCount: 3, lives: 2 };
     let amILobbyReady = false, amIInputReady = false, amIMaster = false;
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -257,6 +257,7 @@
             data.rules = {
                 genre: document.getElementById('game-genre').value || "食べ物",
                 likesCount: parseInt(document.getElementById('likes-count').value),
+                safesCount: parseInt(document.getElementById('safes-count').value), // ★追加
                 dislikesCount: parseInt(document.getElementById('dislikes-count').value),
                 lives: parseInt(document.getElementById('lives-count').value)
             };
@@ -267,6 +268,7 @@
     document.getElementById('player-name').addEventListener('input', sendSettings);
     document.getElementById('game-genre').addEventListener('input', sendSettings);
     document.getElementById('likes-count').addEventListener('change', sendSettings);
+    document.getElementById('safes-count').addEventListener('change', sendSettings); // ★追加
     document.getElementById('dislikes-count').addEventListener('change', sendSettings);
     document.getElementById('lives-count').addEventListener('change', sendSettings);
     document.getElementById('transfer-master-btn').addEventListener('click', () => socket.emit('transfer master'));
@@ -279,28 +281,31 @@
         if (info.status === 'lobby') {
             document.getElementById('master-badge').style.display = "block";
             if (amIMaster) {
-                document.getElementById('master-badge').innerText = "👑 あなたがゲームマスターです";
+                document.getElementById('master-badge').innerText = "あなたがゲームマスターです";
                 document.getElementById('master-badge').style.background = "#fff3b0";
                 document.getElementById('rule-lock-msg').innerText = "(変更可能)";
                 
                 document.getElementById('game-genre').disabled = amILobbyReady;
                 document.getElementById('likes-count').disabled = amILobbyReady;
+                document.getElementById('safes-count').disabled = amILobbyReady; // ★追加
                 document.getElementById('dislikes-count').disabled = amILobbyReady;
                 document.getElementById('lives-count').disabled = amILobbyReady;
                 document.getElementById('transfer-master-btn').style.display = (oppInfo && !amILobbyReady) ? "block" : "none";
             } else {
-                document.getElementById('master-badge').innerText = "👤 あなたはゲストです";
+                document.getElementById('master-badge').innerText = "あなたはゲストです";
                 document.getElementById('master-badge').style.background = "#e0e0e0";
                 document.getElementById('rule-lock-msg').innerText = "(マスターのみ変更可)";
                 
                 document.getElementById('game-genre').disabled = true;
                 document.getElementById('likes-count').disabled = true;
+                document.getElementById('safes-count').disabled = true; // ★追加
                 document.getElementById('dislikes-count').disabled = true;
                 document.getElementById('lives-count').disabled = true;
                 document.getElementById('transfer-master-btn').style.display = "none";
                 
                 document.getElementById('game-genre').value = info.rules.genre;
                 document.getElementById('likes-count').value = info.rules.likesCount;
+                document.getElementById('safes-count').value = info.rules.safesCount || 0; // ★追加
                 document.getElementById('dislikes-count').value = info.rules.dislikesCount;
                 document.getElementById('lives-count').value = info.rules.lives;
             }
@@ -331,26 +336,35 @@
         socket.emit('lobby ready', document.getElementById('player-name').value);
     });
 
+    // ★修正: startRank（開始順位）に対応し、セーフの入力枠も生成
     socket.on('start inputting', (rules) => {
         currentRules = rules;
         document.getElementById('lobby-screen').style.display = 'none';
         document.getElementById('setup-screen').style.display = 'flex';
         
-        // ★ジャンル名を画面のテキストに反映
         document.querySelectorAll('.genre-display-text').forEach(el => el.innerText = currentRules.genre);
 
-        createInputs('likes-container', 'like', `${currentRules.genre}を入力`, currentRules.likesCount, true);
-        createInputs('dislikes-container', 'dislike', `${currentRules.genre}を入力`, currentRules.dislikesCount, false);
+        createInputs('likes-container', 'like', `${currentRules.genre}を入力`, currentRules.likesCount, true, 0);
+        
+        if (currentRules.safesCount > 0) {
+            document.getElementById('safes-group').style.display = 'block';
+            createInputs('safes-container', 'safe', `ランク外を入力`, currentRules.safesCount, true, currentRules.likesCount);
+        } else {
+            document.getElementById('safes-group').style.display = 'none';
+            document.getElementById('safes-container').innerHTML = "";
+        }
+
+        createInputs('dislikes-container', 'dislike', `${currentRules.genre}を入力`, currentRules.dislikesCount, false, 0);
     });
 
-    function createInputs(containerId, className, placeholder, count, isRanked) {
+    function createInputs(containerId, className, placeholder, count, isRanked, startRank) {
         const container = document.getElementById(containerId);
         container.innerHTML = ""; 
         for (let i = 1; i <= count; i++) {
             const div = document.createElement('div');
             div.className = 'flex-input';
             const span = document.createElement('span');
-            span.innerText = isRanked ? `${i}位:` : `・`;
+            span.innerText = isRanked ? `${startRank + i}位:` : `・`;
             const input = document.createElement('input');
             input.type = 'text'; input.maxLength = 10; input.className = className;
             input.placeholder = placeholder;
@@ -362,16 +376,18 @@
 
     function checkInputValidity() {
         const likes = Array.from(document.querySelectorAll('.like')).filter(i => i.value.trim() !== "");
+        const safes = Array.from(document.querySelectorAll('.safe')).filter(i => i.value.trim() !== "");
         const dislikes = Array.from(document.querySelectorAll('.dislike')).filter(i => i.value.trim() !== "");
-        document.getElementById('submit-btn').disabled = !(likes.length === currentRules.likesCount && dislikes.length === currentRules.dislikesCount);
+        document.getElementById('submit-btn').disabled = !(likes.length === currentRules.likesCount && safes.length === (currentRules.safesCount || 0) && dislikes.length === currentRules.dislikesCount);
     }
 
     document.getElementById('submit-btn').addEventListener('click', () => {
         const likes = Array.from(document.querySelectorAll('.like')).map(i => i.value.trim());
+        const safes = Array.from(document.querySelectorAll('.safe')).map(i => i.value.trim());
         const dislikes = Array.from(document.querySelectorAll('.dislike')).map(i => i.value.trim());
         amIInputReady = true;
         document.querySelectorAll('#setup-screen input, #setup-screen button').forEach(el => el.disabled = true);
-        socket.emit('submit lists', { likes: likes, dislikes: dislikes });
+        socket.emit('submit lists', { likes: likes, safes: safes, dislikes: dislikes });
     });
 
     socket.on('restore playing', (data) => {
@@ -407,7 +423,6 @@
         document.getElementById('quiz-board').innerHTML = html;
     }
 
-    // ★修正: スコア（ポイント）を非表示にし、ライフのみ表示
     socket.on('sync game state', (state) => {
         document.getElementById('p1-stats').innerHTML = `
             <div class="stat-name">先手：${state.stats.p1.name}</div>
@@ -418,11 +433,9 @@
             <div class="stat-values">❤️ ${state.stats.p2.data.lives}</div>
         `;
         
-        // ★追加: ランキングの更新
         const isMeP1 = (socket.id === state.p1Id);
         const myRevealed = isMeP1 ? state.stats.p1.revealed : state.stats.p2.revealed;
         const oppRevealed = isMeP1 ? state.stats.p2.revealed : state.stats.p1.revealed;
-        // サーバーからデータが来ていれば描画する
         if (myRevealed && oppRevealed) {
             renderRankingList('my-ranking-list', myRevealed);
             renderRankingList('opp-ranking-list', oppRevealed);
@@ -431,12 +444,10 @@
         toggleTurnDisplay(state.turn === socket.id);
     });
 
-    // ★追加: ランキング表の開閉
     function toggleRanking() {
         document.getElementById('ranking-board').classList.toggle('closed');
     }
 
-    // ★追加: ランキングリストの描画
     function renderRankingList(elementId, revealedArray) {
         const ul = document.getElementById(elementId);
         ul.innerHTML = "";
@@ -457,12 +468,11 @@
         toggleTurnDisplay(false); 
     }
 
-    // ★修正: guess result
+    // ★修正: ポップアップとボタン色にセーフを追加
     socket.on('guess result', (data) => {
         const logArea = document.getElementById('game-log');
         logArea.innerHTML = `<p><strong>${data.guesserName}</strong>: ${data.logMsg}</p>` + logArea.innerHTML;
 
-        // === ★追加: フラッシュポップアップの表示 ===
         const popup = document.getElementById('flash-popup');
         const popupText = document.getElementById('flash-popup-text');
         
@@ -472,6 +482,9 @@
         if (data.isCorrect) {
             text = data.guesserId === socket.id ? `正解！ 第${data.rank}位` : `相手が正解！\n(第${data.rank}位)`;
             className = 'flash-popup-text flash-correct';
+        } else if (data.isSafe) { // ★追加
+            text = data.guesserId === socket.id ? `セーフ！ 第${data.rank}位\n(惜しい！)` : `相手がセーフ\n(第${data.rank}位)`;
+            className = 'flash-popup-text flash-safe';
         } else {
             text = data.guesserId === socket.id ? `ドボン...` : `相手がドボン...`;
             className = 'flash-popup-text flash-wrong';
@@ -481,11 +494,9 @@
         popupText.innerText = text;
         popup.style.display = 'flex';
         
-        // 1.2秒後に非表示にする
         setTimeout(() => {
             popup.style.display = 'none';
         }, 1200);
-        // ===================================
 
         if (data.guesserId === socket.id) {
             const btn = document.getElementById(`btn-${data.btnIndex}`);
@@ -493,7 +504,13 @@
                 btn.disabled = true;
                 btn.classList.add('answered'); 
                 btn.style.opacity = "0.8";
-                btn.style.background = data.isCorrect ? "linear-gradient(to bottom, #d32f2f, #b71c1c)" : "linear-gradient(to bottom, #607d8b, #455a64)";
+                if (data.isCorrect) {
+                    btn.style.background = "linear-gradient(to bottom, #d32f2f, #b71c1c)";
+                } else if (data.isSafe) {
+                    btn.style.background = "linear-gradient(to bottom, #28a745, #1e7e34)"; 
+                } else {
+                    btn.style.background = "linear-gradient(to bottom, #607d8b, #455a64)";
+                }
             }
         }
 
