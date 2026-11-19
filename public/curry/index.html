@@ -440,6 +440,13 @@
     const renderScale = 1.5;
 
     const itemSpeed = 3;
+    // 落ちてくるアイテムの回転（時計回り）
+    // アイテムごとに「何秒で1周するか」をこの中からランダムに選ぶ。止めたいときは randomRotationSpeed() が 0 を返すようにする
+    const rotationSecondsChoices = [3, 4, 5];
+    function randomRotationSpeed() {
+        const seconds = rotationSecondsChoices[Math.floor(Math.random() * rotationSecondsChoices.length)];
+        return (Math.PI * 2) / (seconds * 60); // 1フレーム（1/60秒）あたりの回転量（ラジアン）
+    }
     const damageInvincibilityFrames = 120;
     const maxLives = 5;
 
@@ -692,6 +699,8 @@
                 x: 150 + Math.random() * 500,
                 y: currentY,
                 radius: 16,
+                angle: Math.random() * Math.PI * 2, // 向きをばらばらにして、全部が同じ角度で回らないようにする
+                rotationSpeed: randomRotationSpeed(),
                 active: true
             };
 
@@ -764,6 +773,7 @@
         } else {
             items.forEach(item => {
                 item.y += itemSpeed;
+                item.angle += item.rotationSpeed;
 
                 if (item.y > canvas.height + 50) {
                     const rand = Math.random();
@@ -779,6 +789,7 @@
                     }
                     
                     item.x = 150 + Math.random() * 500;
+                    item.rotationSpeed = randomRotationSpeed(); // 別のアイテムとして出直すので、回転の速さも選び直す
                     item.active = true;
 
                     let minY = 0;
@@ -856,7 +867,12 @@
             }
 
             if (img && img.complete) {
-                ctx.drawImage(img, item.x - drawSize / 2, item.y - drawSize / 2, drawSize, drawSize);
+                // アイテムの中心を軸に回転させて描く（当たり判定は円なので回転の影響はない）
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.angle);
+                ctx.drawImage(img, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+                ctx.restore();
             }
         });
 
