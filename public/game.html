@@ -6,13 +6,13 @@
     <title>好物当て - 対局室</title>
     
     <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
-    <link rel="icon" href="script/image/komiya_icon.png"> 
+    <link rel="icon" href="image/komiya_icon.png"> 
     
     <style>
         @font-face { font-family: 'SetoFont'; src: url('font/setofont.ttf') format('truetype'); font-display: block; }
         * { font-family: 'SetoFont', "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #2c3e50; -webkit-user-select: none; user-select: none; }
-        #bg-image { position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1; background-image: url('script/image/mujin_haikei.PNG'); background-size: cover; background-position: center; background-repeat: no-repeat; }
+        #bg-image { position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1; background-image: url('image/mujin_haikei.PNG'); background-size: cover; background-position: center; background-repeat: no-repeat; }
         
         .screen-wrapper { display: flex; justify-content: center; align-items: center; min-height: 100%; padding: 15px; overscroll-behavior: none; position: relative; }
         .top-menu-btn { position: absolute; top: 15px; right: 15px; background: linear-gradient(to bottom, #8b4513, #5e3522); color: #ECDBBF; border: 2px solid #ECDBBF; border-radius: 8px; padding: 8px 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; font-size: 1rem; }
@@ -74,6 +74,8 @@
         .flash-wrong { background: rgba(220, 53, 69, 0.95); color: white; border: 5px solid #fff; }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .flash-safe { background: rgba(255, 193, 7, 0.95); color: #333; border: 5px solid #fff; }
+        /* 背景画像(#bg-image, z-index:-1)が body の背景色に隠れないよう body は透明にする（紺色は html 側に残る） */
+        body { background-color: transparent; }
     </style>
 </head>
 <body>
@@ -420,21 +422,32 @@
         document.getElementById('game-screen').style.display = 'flex';
         document.getElementById('opponent-name-display').innerText = opponentName;
 
-        let html = "";
+        // 相手が入力した言葉は文字として扱う（' や < が入っても壊れないように innerHTML を使わない）
+        const board = document.getElementById('quiz-board');
+        board.innerHTML = "";
         quizList.forEach((word, index) => {
-            html += `<button class="quiz-item" onclick="makeGuess('${word}', ${index})" id="btn-${index}">${word}</button>`;
+            const btn = document.createElement('button');
+            btn.className = 'quiz-item';
+            btn.id = `btn-${index}`;
+            btn.textContent = word;
+            btn.addEventListener('click', () => makeGuess(word, index));
+            board.appendChild(btn);
         });
-        document.getElementById('quiz-board').innerHTML = html;
+    }
+
+    // 名前など、人が入力した文字をHTMLに埋め込むときに使う
+    function escapeHtml(str) {
+        return String(str ?? "").replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     socket.on('sync game state', (state) => {
         document.getElementById('p1-stats').innerHTML = `
-            <div class="stat-name">先手：${state.stats.p1.name}</div>
-            <div class="stat-values">❤️ ${state.stats.p1.data.lives}</div>
+            <div class="stat-name">先手：${escapeHtml(state.stats.p1.name)}</div>
+            <div class="stat-values">❤️ ${escapeHtml(state.stats.p1.data.lives)}</div>
         `;
         document.getElementById('p2-stats').innerHTML = `
-            <div class="stat-name">後手：${state.stats.p2.name}</div>
-            <div class="stat-values">❤️ ${state.stats.p2.data.lives}</div>
+            <div class="stat-name">後手：${escapeHtml(state.stats.p2.name)}</div>
+            <div class="stat-values">❤️ ${escapeHtml(state.stats.p2.data.lives)}</div>
         `;
         
         const isMeP1 = (socket.id === state.p1Id);

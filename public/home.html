@@ -7,7 +7,7 @@
     
     <!-- フォントとアイコンの読み込み -->
     <link rel="preload" href="font/setofont.ttf" as="font" type="font/ttf" crossorigin>
-    <link rel="icon" href="script/image/komiya_icon.png"> 
+    <link rel="icon" href="image/komiya_icon.png"> 
     
     <style>
         @font-face {
@@ -30,7 +30,7 @@
         /* 背景画像の設定 */
         #bg-image {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100%; z-index: -1;
-            background-image: url('script/image/mujin_haikei.PNG');
+            background-image: url('image/mujin_haikei.PNG');
             background-size: cover; background-position: center; background-repeat: no-repeat;
         }
 
@@ -143,6 +143,8 @@
             cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .sub-btn:active { transform: scale(0.95); }
+        /* 背景画像(#bg-image, z-index:-1)が body の背景色に隠れないよう body は透明にする（紺色は html 側に残る） */
+        body { background-color: transparent; }
     </style>
 </head>
 <body>
